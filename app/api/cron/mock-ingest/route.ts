@@ -8,11 +8,19 @@ function isAuthorized(request: Request) {
   return token && token === getCronSecret();
 }
 
-export async function POST(request: Request) {
+async function handleIngest(request: Request) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const result = await runProviderIngestForAllUsers();
   return NextResponse.json({ ok: true, result });
+}
+
+export async function GET(request: Request) {
+  return handleIngest(request);
+}
+
+export async function POST(request: Request) {
+  return handleIngest(request);
 }
