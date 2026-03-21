@@ -1,0 +1,173 @@
+import type {
+  IngestRunRecord,
+  OddsSnapshotRecord,
+  SignalRecord,
+  TrackedMatchRecord,
+  UserSettings,
+} from "@/lib/types/database";
+import { priorityLeagues } from "@/lib/config/leagues";
+
+export const mockSignals: SignalRecord[] = [
+  {
+    id: "sig-1",
+    created_at: "2026-03-20T18:45:00.000Z",
+    user_id: "demo-user",
+    sport: "ice_hockey",
+    league: "Finnish Liiga",
+    match_id: "liiga-20260320-001",
+    home_team: "Tappara",
+    away_team: "Ilves",
+    match_start_time: "2026-03-20T17:30:00.000Z",
+    selected_team: "Tappara",
+    selected_team_side: "home",
+    period1_goals: 0,
+    period2_goals: 0,
+    trigger_condition_met: true,
+    trigger_time: "2026-03-20T19:09:00.000Z",
+    odds: 2.05,
+    bookmaker: "Pinnacle",
+    stake: 1.5,
+    status: "triggered",
+    result: "pending",
+    notes: "Eligible after two scoreless periods."
+  },
+  {
+    id: "sig-2",
+    created_at: "2026-03-19T17:20:00.000Z",
+    user_id: "demo-user",
+    sport: "ice_hockey",
+    league: "DEL",
+    match_id: "del-20260319-004",
+    home_team: "Eisbaren Berlin",
+    away_team: "Mannheim",
+    match_start_time: "2026-03-19T18:00:00.000Z",
+    selected_team: "Mannheim",
+    selected_team_side: "away",
+    period1_goals: 0,
+    period2_goals: 1,
+    trigger_condition_met: false,
+    trigger_time: null,
+    odds: 1.88,
+    bookmaker: "Bet365",
+    stake: 1,
+    status: "watching",
+    result: "pending",
+    notes: "Second period goal invalidated the trigger."
+  },
+  {
+    id: "sig-3",
+    created_at: "2026-03-18T16:10:00.000Z",
+    user_id: "demo-user",
+    sport: "ice_hockey",
+    league: "KHL",
+    match_id: "khl-20260318-002",
+    home_team: "SKA",
+    away_team: "CSKA",
+    match_start_time: "2026-03-18T17:00:00.000Z",
+    selected_team: "SKA",
+    selected_team_side: "home",
+    period1_goals: 0,
+    period2_goals: 0,
+    trigger_condition_met: true,
+    trigger_time: "2026-03-18T18:42:00.000Z",
+    odds: 2.18,
+    bookmaker: "Unibet",
+    stake: 2,
+    status: "won",
+    result: "won",
+    notes: "Third period correction confirmed."
+  }
+];
+
+export const mockTrackedMatches: TrackedMatchRecord[] = [
+  {
+    id: "tm-1",
+    created_at: "2026-03-21T09:00:00.000Z",
+    user_id: "demo-user",
+    external_match_id: "mock-1",
+    league: "Finnish Liiga",
+    home_team: "Tappara",
+    away_team: "Ilves",
+    match_start_time: "2026-03-21T17:30:00.000Z",
+    home_score: 1,
+    away_score: 2,
+    period1_home_goals: 0,
+    period1_away_goals: 1,
+    period2_home_goals: 0,
+    period2_away_goals: 1,
+    source: "mock-provider",
+    ingest_status: "synced",
+    last_synced_at: "2026-03-21T12:15:00.000Z",
+    raw_payload: { market: "3rd period team goal" }
+  },
+  {
+    id: "tm-2",
+    created_at: "2026-03-21T09:02:00.000Z",
+    user_id: "demo-user",
+    external_match_id: "mock-2",
+    league: "KHL",
+    home_team: "SKA",
+    away_team: "CSKA",
+    match_start_time: "2026-03-21T18:00:00.000Z",
+    home_score: 0,
+    away_score: 2,
+    period1_home_goals: 0,
+    period1_away_goals: 1,
+    period2_home_goals: 0,
+    period2_away_goals: 1,
+    source: "mock-provider",
+    ingest_status: "synced",
+    last_synced_at: "2026-03-21T12:15:00.000Z",
+    raw_payload: { market: "3rd period team goal" }
+  }
+];
+
+export const mockOddsSnapshots: OddsSnapshotRecord[] = [
+  {
+    id: "odds-1",
+    created_at: "2026-03-21T12:15:00.000Z",
+    user_id: "demo-user",
+    tracked_match_id: "tm-1",
+    market_type: "3rd period team goal",
+    bookmaker: "Pinnacle",
+    decimal_odds: 2.04,
+    captured_at: "2026-03-21T12:15:00.000Z",
+    source: "mock-provider"
+  },
+  {
+    id: "odds-2",
+    created_at: "2026-03-21T12:15:00.000Z",
+    user_id: "demo-user",
+    tracked_match_id: "tm-2",
+    market_type: "3rd period team goal",
+    bookmaker: "Bet365",
+    decimal_odds: 2.21,
+    captured_at: "2026-03-21T12:15:00.000Z",
+    source: "mock-provider"
+  }
+];
+
+export const mockIngestRuns: IngestRunRecord[] = [
+  {
+    id: "run-1",
+    created_at: "2026-03-21T12:15:00.000Z",
+    user_id: "demo-user",
+    provider: "mock-provider",
+    run_type: "fixture_sync",
+    status: "synced",
+    records_created: 2,
+    started_at: "2026-03-21T12:15:00.000Z",
+    finished_at: "2026-03-21T12:15:06.000Z",
+    notes: "Seeded demo fixtures and odds snapshots."
+  }
+];
+
+export const mockSettings: UserSettings = {
+  user_id: "demo-user",
+  selected_leagues: [...priorityLeagues],
+  notifications_enabled: true,
+  email_notifications: true,
+  push_notifications: false,
+  timezone: "Europe/Budapest",
+  preferred_market_type: "3rd period team goal"
+};
