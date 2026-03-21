@@ -1,16 +1,15 @@
-import { ExternalHockeyFixture, HockeyApiProvider } from "@/lib/types/provider";
+import type { ExternalHockeyGame, ExternalMarketData, HockeyApiProvider } from "@/lib/types/provider";
 
 export class MockHockeyApiProvider implements HockeyApiProvider {
   readonly providerKey = "mock";
   readonly displayName = "Mock Hockey Provider";
   readonly supportsAutomaticTriggers = true;
 
-  supportsLeague(league: string) {
-    void league;
+  supportsLeague() {
     return true;
   }
 
-  async getUpcomingFixtures(leagues: string[]) {
+  private buildGames(leagues: string[]) {
     return leagues.slice(0, 6).map((league, index) => {
       const homeScoreless = index % 2 === 0;
       const awayScoreless = index % 3 === 0;
@@ -38,7 +37,31 @@ export class MockHockeyApiProvider implements HockeyApiProvider {
         odds: 1.82 + index * 0.09,
         source: "mock-provider",
         rawPayload: { market: "3rd period team goal", league },
-      } satisfies ExternalHockeyFixture;
+      } satisfies ExternalHockeyGame;
     });
+  }
+
+  async getScheduledGames(leagues: string[]) {
+    return this.buildGames(leagues).filter((game) => game.status !== "live");
+  }
+
+  async getLiveGames(leagues: string[]) {
+    return this.buildGames(leagues).filter((game) => game.status === "live");
+  }
+
+  async getGameDetails(externalMatchId: string) {
+    return this.buildGames(["Mock League"]).find((game) => game.externalMatchId === externalMatchId) ?? null;
+  }
+
+  async getMarketData(externalMatchId: string, marketType: string) {
+    return [
+      {
+        marketType,
+        bookmaker: "Pinnacle",
+        odds: 1.94,
+        source: "mock-provider",
+        payload: { externalMatchId },
+      },
+    ] satisfies ExternalMarketData[];
   }
 }

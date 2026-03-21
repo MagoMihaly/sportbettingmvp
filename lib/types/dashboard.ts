@@ -1,6 +1,9 @@
 import type {
+  AlertRecord,
   IngestRunRecord,
   OddsSnapshotRecord,
+  ProfileRecord,
+  PushSubscriptionRecord,
   SignalRecord,
   TrackedMatchRecord,
   UserSettings,
@@ -10,6 +13,12 @@ export type ProviderSummary = {
   providerKey: string;
   displayName: string;
   supportsAutomaticTriggers: boolean;
+};
+
+export type DashboardViewer = {
+  userId: string;
+  email: string;
+  isDemo: boolean;
 };
 
 export type DashboardStats = {
@@ -22,11 +31,17 @@ export type DashboardStats = {
   notificationStatus: string;
   trackedMatches: number;
   oddsSnapshots: number;
+  alertsCount: number;
+  activePushSubscriptions: number;
 };
 
 export type DashboardPayload = {
+  viewer: DashboardViewer;
+  profile: ProfileRecord | null;
   signals: SignalRecord[];
+  alerts: AlertRecord[];
   settings: UserSettings | null;
+  pushSubscriptions: PushSubscriptionRecord[];
   trackedMatches: TrackedMatchRecord[];
   oddsSnapshots: OddsSnapshotRecord[];
   ingestRuns: IngestRunRecord[];

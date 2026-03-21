@@ -1,11 +1,23 @@
 import type {
+  AlertRecord,
   IngestRunRecord,
   OddsSnapshotRecord,
+  ProfileRecord,
+  PushSubscriptionRecord,
   SignalRecord,
   TrackedMatchRecord,
   UserSettings,
 } from "@/lib/types/database";
 import { priorityLeagues } from "@/lib/config/leagues";
+
+export const mockProfile: ProfileRecord = {
+  user_id: "demo-user",
+  email: "demo@ehse.local",
+  full_name: "Demo Researcher",
+  role: "member",
+  created_at: "2026-03-20T08:00:00.000Z",
+  updated_at: "2026-03-21T08:00:00.000Z",
+};
 
 export const mockSignals: SignalRecord[] = [
   {
@@ -29,7 +41,7 @@ export const mockSignals: SignalRecord[] = [
     stake: 1.5,
     status: "triggered",
     result: "pending",
-    notes: "Eligible after two scoreless periods."
+    notes: "Eligible after two scoreless periods.",
   },
   {
     id: "sig-2",
@@ -52,7 +64,7 @@ export const mockSignals: SignalRecord[] = [
     stake: 1,
     status: "watching",
     result: "pending",
-    notes: "Second period goal invalidated the trigger."
+    notes: "Second period goal invalidated the trigger.",
   },
   {
     id: "sig-3",
@@ -75,8 +87,55 @@ export const mockSignals: SignalRecord[] = [
     stake: 2,
     status: "won",
     result: "won",
-    notes: "Third period correction confirmed."
-  }
+    notes: "Third period correction confirmed.",
+  },
+];
+
+export const mockAlerts: AlertRecord[] = [
+  {
+    id: "alert-1",
+    created_at: "2026-03-21T12:16:00.000Z",
+    user_id: "demo-user",
+    live_signal_id: "live-1",
+    alert_type: "TEAM_NO_GOAL_AFTER_P1_AND_P2",
+    channel: "dashboard",
+    title: "Live hockey alert",
+    body: "Tappara stayed scoreless through the tracked period condition in Finnish Liiga.",
+    status: "sent",
+    fingerprint: "demo-user:mock-1:home:TEAM_NO_GOAL_AFTER_P1_AND_P2:dashboard",
+    delivered_at: "2026-03-21T12:16:00.000Z",
+    payload: { league: "Finnish Liiga", selectedTeam: "Tappara" },
+  },
+  {
+    id: "alert-2",
+    created_at: "2026-03-21T12:20:00.000Z",
+    user_id: "demo-user",
+    live_signal_id: "live-2",
+    alert_type: "TEAM_NO_GOAL_AFTER_P1_AND_P2",
+    channel: "push",
+    title: "Live hockey alert",
+    body: "SKA stayed scoreless through the tracked period condition in KHL.",
+    status: "pending",
+    fingerprint: "demo-user:mock-2:home:TEAM_NO_GOAL_AFTER_P1_AND_P2:push",
+    delivered_at: null,
+    payload: { league: "KHL", selectedTeam: "SKA" },
+  },
+];
+
+export const mockPushSubscriptions: PushSubscriptionRecord[] = [
+  {
+    id: "push-1",
+    created_at: "2026-03-21T10:00:00.000Z",
+    updated_at: "2026-03-21T12:00:00.000Z",
+    user_id: "demo-user",
+    endpoint: "https://push.demo/subscriptions/1",
+    p256dh: "demo-p256dh",
+    auth: "demo-auth",
+    expiration_time: null,
+    status: "active",
+    user_agent: "Demo Browser",
+    last_seen_at: "2026-03-21T12:00:00.000Z",
+  },
 ];
 
 export const mockTrackedMatches: TrackedMatchRecord[] = [
@@ -98,7 +157,7 @@ export const mockTrackedMatches: TrackedMatchRecord[] = [
     source: "mock-provider",
     ingest_status: "synced",
     last_synced_at: "2026-03-21T12:15:00.000Z",
-    raw_payload: { market: "3rd period team goal" }
+    raw_payload: { market: "3rd period team goal" },
   },
   {
     id: "tm-2",
@@ -118,8 +177,8 @@ export const mockTrackedMatches: TrackedMatchRecord[] = [
     source: "mock-provider",
     ingest_status: "synced",
     last_synced_at: "2026-03-21T12:15:00.000Z",
-    raw_payload: { market: "3rd period team goal" }
-  }
+    raw_payload: { market: "3rd period team goal" },
+  },
 ];
 
 export const mockOddsSnapshots: OddsSnapshotRecord[] = [
@@ -132,7 +191,7 @@ export const mockOddsSnapshots: OddsSnapshotRecord[] = [
     bookmaker: "Pinnacle",
     decimal_odds: 2.04,
     captured_at: "2026-03-21T12:15:00.000Z",
-    source: "mock-provider"
+    source: "mock-provider",
   },
   {
     id: "odds-2",
@@ -143,8 +202,8 @@ export const mockOddsSnapshots: OddsSnapshotRecord[] = [
     bookmaker: "Bet365",
     decimal_odds: 2.21,
     captured_at: "2026-03-21T12:15:00.000Z",
-    source: "mock-provider"
-  }
+    source: "mock-provider",
+  },
 ];
 
 export const mockIngestRuns: IngestRunRecord[] = [
@@ -158,8 +217,8 @@ export const mockIngestRuns: IngestRunRecord[] = [
     records_created: 2,
     started_at: "2026-03-21T12:15:00.000Z",
     finished_at: "2026-03-21T12:15:06.000Z",
-    notes: "Seeded demo fixtures and odds snapshots."
-  }
+    notes: "Seeded demo fixtures and odds snapshots.",
+  },
 ];
 
 export const mockSettings: UserSettings = {
@@ -167,7 +226,7 @@ export const mockSettings: UserSettings = {
   selected_leagues: [...priorityLeagues],
   notifications_enabled: true,
   email_notifications: true,
-  push_notifications: false,
+  push_notifications: true,
   timezone: "Europe/Budapest",
-  preferred_market_type: "3rd period team goal"
+  preferred_market_type: "3rd period team goal",
 };

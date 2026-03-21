@@ -20,3 +20,14 @@ export function hasSupabaseEnv() {
 export function getCronSecret() {
   return process.env.CRON_SECRET ?? "";
 }
+
+export function getWebPushEnv() {
+  return {
+    publicKey: process.env.WEB_PUSH_VAPID_PUBLIC_KEY ?? "",
+    privateKey: process.env.WEB_PUSH_VAPID_PRIVATE_KEY ?? "",
+  };
+}
+
+export function getProviderApiKey() {
+  return process.env.PROVIDER_API_KEY ?? "";
+}

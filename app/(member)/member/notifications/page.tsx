@@ -1,8 +1,9 @@
 import { NotificationSettingsForm } from "@/components/notification-settings-form";
+import { PushSubscriptionCard } from "@/components/push-subscription-card";
 import { getDashboardData } from "@/lib/data/dashboard";
 
 export default async function NotificationsPage() {
-  const { settings } = await getDashboardData();
+  const { pushSubscriptions, settings } = await getDashboardData();
 
   return (
     <div className="space-y-6">
@@ -11,7 +12,7 @@ export default async function NotificationsPage() {
         <h1 className="text-3xl font-semibold text-white">Alert preferences</h1>
       </div>
       <NotificationSettingsForm settings={settings} />
+      <PushSubscriptionCard subscriptions={pushSubscriptions} pushEnabled={settings?.push_notifications ?? false} />
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import { getLeagueAliases, normalizeProviderValue } from "@/lib/config/providerLeagues";
-import { ExternalHockeyFixture, HockeyApiProvider } from "@/lib/types/provider";
+import type { ExternalHockeyGame, ExternalMarketData, HockeyApiProvider } from "@/lib/types/provider";
 
 type TheSportsDbLeague = {
   idLeague?: string;
@@ -26,7 +26,7 @@ export class TheSportsDbHockeyProvider implements HockeyApiProvider {
   readonly displayName = "TheSportsDB";
   readonly supportsAutomaticTriggers = false;
 
-  private readonly apiKey = process.env.THESPORTSDB_API_KEY ?? "123";
+  private readonly apiKey = process.env.THESPORTSDB_API_KEY ?? process.env.PROVIDER_API_KEY ?? "123";
   private readonly apiVersion = process.env.THESPORTSDB_API_VERSION ?? "v1";
   private readonly baseV1 = "https://www.thesportsdb.com/api/v1/json";
   private readonly baseV2 = "https://www.thesportsdb.com/api/v2/json";
@@ -80,7 +80,7 @@ export class TheSportsDbHockeyProvider implements HockeyApiProvider {
       .filter(Boolean) as Array<{ internalLeague: string; providerLeagueId: string; providerLeagueName: string }>;
   }
 
-  private mapEvent(event: TheSportsDbEvent, internalLeague: string): ExternalHockeyFixture | null {
+  private mapEvent(event: TheSportsDbEvent, internalLeague: string): ExternalHockeyGame | null {
     if (!event.idEvent || !event.strHomeTeam || !event.strAwayTeam) {
       return null;
     }
@@ -124,7 +124,7 @@ export class TheSportsDbHockeyProvider implements HockeyApiProvider {
     };
   }
 
-  private async getLeagueScheduleV1(providerLeagueId: string, internalLeague: string) {
+  private async getLeagueSchedule(providerLeagueId: string, internalLeague: string) {
     const [nextPayload, previousPayload] = await Promise.all([
       this.fetchJson<{ events?: TheSportsDbEvent[] }>(`${this.baseV1}/${this.apiKey}/eventsnextleague.php?id=${providerLeagueId}`),
       this.fetchJson<{ events?: TheSportsDbEvent[] }>(`${this.baseV1}/${this.apiKey}/eventspastleague.php?id=${providerLeagueId}`),
@@ -132,10 +132,10 @@ export class TheSportsDbHockeyProvider implements HockeyApiProvider {
 
     return [...(previousPayload.events ?? []), ...(nextPayload.events ?? [])]
       .map((event) => this.mapEvent(event, internalLeague))
-      .filter(Boolean) as ExternalHockeyFixture[];
+      .filter(Boolean) as ExternalHockeyGame[];
   }
 
-  private async getLeagueLiveV2(providerLeagueId: string, internalLeague: string) {
+  private async getLeagueLive(providerLeagueId: string, internalLeague: string) {
     const payload = await this.fetchJson<{ events?: TheSportsDbEvent[] }>(`${this.baseV2}/livescore/${providerLeagueId}`, {
       headers: {
         "X-API-KEY": this.apiKey,
@@ -144,25 +144,51 @@ export class TheSportsDbHockeyProvider implements HockeyApiProvider {
 
     return (payload.events ?? [])
       .map((event) => this.mapEvent(event, internalLeague))
-      .filter(Boolean) as ExternalHockeyFixture[];
+      .filter(Boolean) as ExternalHockeyGame[];
   }
 
-  async getUpcomingFixtures(leagues: string[]) {
+  private async loadGames(leagues: string[]) {
     const resolvedLeagues = await this.resolveLeagueIds(leagues);
-    const fixtures: ExternalHockeyFixture[] = [];
+    const games: ExternalHockeyGame[] = [];
 
     for (const league of resolvedLeagues) {
       try {
-        const leagueFixtures = this.apiVersion === "v2" && this.apiKey !== "123"
-          ? await this.getLeagueLiveV2(league.providerLeagueId, league.internalLeague)
-          : await this.getLeagueScheduleV1(league.providerLeagueId, league.internalLeague);
+        const leagueGames = this.apiVersion === "v2" && this.apiKey !== "123"
+          ? await this.getLeagueLive(league.providerLeagueId, league.internalLeague)
+          : await this.getLeagueSchedule(league.providerLeagueId, league.internalLeague);
 
-        fixtures.push(...leagueFixtures);
+        games.push(...leagueGames);
       } catch {
         continue;
       }
     }
 
-    return fixtures.sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+    return games.sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+  }
+
+  async getScheduledGames(leagues: string[]) {
+    return (await this.loadGames(leagues)).filter((game) => game.status !== "live");
+  }
+
+  async getLiveGames(leagues: string[]) {
+    return (await this.loadGames(leagues)).filter((game) => game.status === "live");
+  }
+
+  async getGameDetails(externalMatchId: string, league?: string) {
+    const leagues = league ? [league] : [];
+    const games = await this.loadGames(leagues.length > 0 ? leagues : ["Czech Extraliga", "Finnish Liiga", "KHL"]);
+    return games.find((game) => game.externalMatchId === externalMatchId) ?? null;
+  }
+
+  async getMarketData(externalMatchId: string, marketType: string) {
+    return [
+      {
+        marketType,
+        bookmaker: null,
+        odds: null,
+        source: "thesportsdb",
+        payload: { externalMatchId, note: "Market data placeholder for future odds adapter." },
+      },
+    ] satisfies ExternalMarketData[];
   }
 }

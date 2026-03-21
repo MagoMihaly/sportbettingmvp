@@ -49,10 +49,11 @@ export async function runManualLiveSyncAction(prevState: EngineActionState): Pro
   revalidatePath("/member");
   revalidatePath("/member/engine");
   revalidatePath("/member/signals");
+  revalidatePath("/member/notifications");
 
   return {
     error: "",
-    success: `${result.provider} sync stored ${result.matchesCreated} matches and ${result.oddsCreated} odds snapshots. Auto triggers created: ${result.signalsCreated}.`,
+    success: `${result.provider} sync stored ${result.matchesCreated} matches, ${result.oddsCreated} odds snapshots, ${result.signalsCreated} live signals and ${result.alertsCreated} alerts.`,
   };
 }
 

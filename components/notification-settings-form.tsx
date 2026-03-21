@@ -7,7 +7,7 @@ export function NotificationSettingsForm({ settings }: { settings: UserSettings 
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Alert preparation layer</CardDescription>
+        <CardDescription>Alert delivery controls</CardDescription>
         <CardTitle>Notification settings</CardTitle>
       </CardHeader>
       <CardContent>
@@ -34,10 +34,12 @@ export function NotificationSettingsForm({ settings }: { settings: UserSettings 
               <input name="preferred_market_type" defaultValue={settings?.preferred_market_type ?? "3rd period team goal"} className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white" />
             </label>
           </div>
+          <p className="text-sm leading-6 text-slate-400">
+            Push delivery is saved separately through the browser subscription step below. This form controls whether alerts are eligible for delivery.
+          </p>
           <Button>Save notification settings</Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-

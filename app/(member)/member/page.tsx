@@ -4,24 +4,46 @@ import { DashboardStatsGrid } from "@/components/dashboard-stats-grid";
 import { EngineOpsPanel } from "@/components/engine-ops-panel";
 import { LatestSignals } from "@/components/latest-signals";
 import { NotificationStatusCard } from "@/components/notification-status-card";
+import { RealtimeAlertsFeed } from "@/components/realtime-alerts-feed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardData } from "@/lib/data/dashboard";
 
 export default async function MemberDashboardPage() {
-  const { signals, settings, stats, provider } = await getDashboardData();
+  const { alerts, profile, pushSubscriptions, signals, settings, stats, provider, viewer } = await getDashboardData();
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">Member dashboard</div>
-        <h1 className="text-3xl font-semibold text-white">European hockey signal workspace</h1>
+        <h1 className="text-3xl font-semibold text-white">European hockey alert workspace</h1>
         <p className="max-w-3xl text-sm leading-7 text-slate-400">
-          Review tracked signals, current trigger count, watched league coverage, ingest activity and notification readiness from a single dashboard.
+          Review live alerts, tracked signals, watched league coverage, push readiness and ingest activity from a single protected dashboard.
         </p>
       </div>
       <DashboardStatsGrid stats={stats} />
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <RealtimeAlertsFeed initialAlerts={alerts} userId={viewer.userId} isDemo={viewer.isDemo} />
+        <Card>
+          <CardHeader>
+            <CardDescription>Workspace profile</CardDescription>
+            <CardTitle>{profile?.full_name ?? viewer.email}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-slate-300">
+            <div className="flex flex-wrap gap-3">
+              <Badge variant="info">{profile?.role ?? "member"}</Badge>
+              <Badge variant={viewer.isDemo ? "warning" : "success"}>{viewer.isDemo ? "Demo mode" : "Authenticated"}</Badge>
+            </div>
+            <div>Email: {viewer.email}</div>
+            <div>Timezone: {settings?.timezone ?? "Europe/Budapest"}</div>
+            <div>Push devices: {pushSubscriptions.length}</div>
+            <Button asChild>
+              <Link href="/member/account">Open account settings</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <LatestSignals signals={signals} />
         <NotificationStatusCard status={stats.notificationStatus} triggeredSignals={stats.triggeredSignals} />
@@ -44,7 +66,7 @@ export default async function MemberDashboardPage() {
         <Card>
           <CardHeader>
             <CardDescription>Engine summary</CardDescription>
-            <CardTitle>Live ingest base</CardTitle>
+            <CardTitle>Provider and scheduler base</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">

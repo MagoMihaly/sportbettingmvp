@@ -26,13 +26,27 @@ export async function updateLeagueSettingsAction(formData: FormData): Promise<vo
     return;
   }
 
+  const selectedLeagues = formDataToLeagues(formData);
+
   await supabase.from("user_settings").upsert(
     {
       user_id: user.id,
-      selected_leagues: formDataToLeagues(formData),
+      selected_leagues: selectedLeagues,
     },
     { onConflict: "user_id" },
   );
+
+  const { data: leagueRows } = await supabase.from("leagues").select("id,name").in("name", selectedLeagues);
+
+  await supabase.from("user_leagues").delete().eq("user_id", user.id);
+  if ((leagueRows ?? []).length > 0) {
+    await supabase.from("user_leagues").insert(
+      (leagueRows ?? []).map((league) => ({
+        user_id: user.id,
+        league_id: String(league.id),
+      })),
+    );
+  }
 
   revalidatePath("/member");
   revalidatePath("/member/leagues");

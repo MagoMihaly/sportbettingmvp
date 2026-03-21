@@ -1,48 +1,12 @@
 import { createHockeyProvider } from "@/lib/providers/hockeyApi";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { isEligibleThirdPeriodTrigger } from "@/lib/services/signalEngine";
+import { persistTriggeredAlerts, upsertGameRecord } from "@/lib/services/alerts";
+import { getTriggeredSignals } from "@/lib/services/signalEngine";
 import type { TrackedMatchRecord, UserSettings } from "@/lib/types/database";
-import type { ExternalHockeyFixture } from "@/lib/types/provider";
+import type { ExternalHockeyGame } from "@/lib/types/provider";
 
 const provider = createHockeyProvider();
-
-function determineSelection(fixture: ExternalHockeyFixture) {
-  const homeEligible = fixture.period1HomeGoals !== null && fixture.period2HomeGoals !== null
-    ? isEligibleThirdPeriodTrigger(fixture.period1HomeGoals, fixture.period2HomeGoals)
-    : false;
-  const awayEligible = fixture.period1AwayGoals !== null && fixture.period2AwayGoals !== null
-    ? isEligibleThirdPeriodTrigger(fixture.period1AwayGoals, fixture.period2AwayGoals)
-    : false;
-
-  if (homeEligible) {
-    return {
-      selectedTeam: fixture.homeTeam,
-      selectedTeamSide: "home" as const,
-      period1Goals: fixture.period1HomeGoals,
-      period2Goals: fixture.period2HomeGoals,
-      triggerConditionMet: true,
-    };
-  }
-
-  if (awayEligible) {
-    return {
-      selectedTeam: fixture.awayTeam,
-      selectedTeamSide: "away" as const,
-      period1Goals: fixture.period1AwayGoals,
-      period2Goals: fixture.period2AwayGoals,
-      triggerConditionMet: true,
-    };
-  }
-
-  return {
-    selectedTeam: fixture.homeTeam,
-    selectedTeamSide: "home" as const,
-    period1Goals: fixture.period1HomeGoals ?? 0,
-    period2Goals: fixture.period2HomeGoals ?? 0,
-    triggerConditionMet: false,
-  };
-}
 
 export function getActiveProviderSummary() {
   return {
@@ -52,12 +16,28 @@ export function getActiveProviderSummary() {
   };
 }
 
-export async function buildTrackedMatches(settings: UserSettings) {
-  const fixtures = await provider.getUpcomingFixtures(settings.selected_leagues);
-  return fixtures.map((fixture) => ({ fixture, selection: determineSelection(fixture) }));
+async function getWatchlistGames(settings: UserSettings) {
+  const [scheduledGames, liveGames] = await Promise.all([
+    provider.getScheduledGames(settings.selected_leagues),
+    provider.getLiveGames(settings.selected_leagues),
+  ]);
+
+  const merged = [...liveGames, ...scheduledGames];
+  const deduped = new Map<string, ExternalHockeyGame>();
+
+  for (const game of merged) {
+    deduped.set(`${game.source}:${game.externalMatchId}`, game);
+  }
+
+  return [...deduped.values()].sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
 }
 
-async function upsertTrackedMatch(admin: ReturnType<typeof createAdminClient>, settings: UserSettings, fixture: ExternalHockeyFixture) {
+export async function buildTrackedMatches(settings: UserSettings) {
+  const games = await getWatchlistGames(settings);
+  return games.map((game) => ({ game, evaluatedSignals: getTriggeredSignals(game) }));
+}
+
+async function upsertTrackedMatch(admin: ReturnType<typeof createAdminClient>, settings: UserSettings, game: ExternalHockeyGame) {
   const now = new Date().toISOString();
 
   const { data: trackedMatch, error } = await admin
@@ -65,21 +45,21 @@ async function upsertTrackedMatch(admin: ReturnType<typeof createAdminClient>, s
     .upsert(
       {
         user_id: settings.user_id,
-        external_match_id: fixture.externalMatchId,
-        league: fixture.league,
-        home_team: fixture.homeTeam,
-        away_team: fixture.awayTeam,
-        match_start_time: fixture.startTime,
-        home_score: fixture.homeScore,
-        away_score: fixture.awayScore,
-        period1_home_goals: fixture.period1HomeGoals ?? 0,
-        period1_away_goals: fixture.period1AwayGoals ?? 0,
-        period2_home_goals: fixture.period2HomeGoals ?? 0,
-        period2_away_goals: fixture.period2AwayGoals ?? 0,
-        source: fixture.source,
+        external_match_id: game.externalMatchId,
+        league: game.league,
+        home_team: game.homeTeam,
+        away_team: game.awayTeam,
+        match_start_time: game.startTime,
+        home_score: game.homeScore,
+        away_score: game.awayScore,
+        period1_home_goals: game.period1HomeGoals ?? 0,
+        period1_away_goals: game.period1AwayGoals ?? 0,
+        period2_home_goals: game.period2HomeGoals ?? 0,
+        period2_away_goals: game.period2AwayGoals ?? 0,
+        source: game.source,
         ingest_status: "synced",
         last_synced_at: now,
-        raw_payload: fixture.rawPayload,
+        raw_payload: game.rawPayload,
       },
       { onConflict: "user_id,external_match_id" },
     )
@@ -93,45 +73,61 @@ async function upsertTrackedMatch(admin: ReturnType<typeof createAdminClient>, s
   return trackedMatch.id as string;
 }
 
-async function insertSignalIfTriggered(
+async function insertOddsSnapshot(
   admin: ReturnType<typeof createAdminClient>,
   settings: UserSettings,
-  fixture: ExternalHockeyFixture,
+  trackedMatchId: string,
+  game: ExternalHockeyGame,
 ) {
-  const selection = determineSelection(fixture);
+  const marketData = await provider.getMarketData(game.externalMatchId, settings.preferred_market_type);
+  const candidate = marketData.find((item) => item.odds !== null) ?? {
+    bookmaker: game.bookmaker,
+    odds: game.odds,
+    source: game.source,
+  };
 
-  if (!selection.triggerConditionMet) {
+  if (candidate.odds === null || candidate.odds === undefined || !candidate.bookmaker) {
     return false;
   }
 
-  const { error } = await admin.from("signals").insert({
+  const { error } = await admin.from("odds_snapshots").insert({
     user_id: settings.user_id,
-    sport: "ice_hockey",
-    league: fixture.league,
-    match_id: fixture.externalMatchId,
-    home_team: fixture.homeTeam,
-    away_team: fixture.awayTeam,
-    match_start_time: fixture.startTime,
-    selected_team: selection.selectedTeam,
-    selected_team_side: selection.selectedTeamSide,
-    period1_goals: selection.period1Goals,
-    period2_goals: selection.period2Goals,
-    trigger_condition_met: true,
-    trigger_time: new Date().toISOString(),
-    odds: fixture.odds,
-    bookmaker: fixture.bookmaker,
-    stake: 1,
-    status: "triggered",
-    result: "pending",
-    notes: `Created by ${provider.displayName} ingest pipeline.`,
+    tracked_match_id: trackedMatchId,
+    market_type: settings.preferred_market_type,
+    bookmaker: candidate.bookmaker,
+    decimal_odds: Number(candidate.odds.toFixed(2)),
+    captured_at: new Date().toISOString(),
+    source: candidate.source,
   });
 
   return !error;
 }
 
+async function writeSyncLog(params: {
+  userId: string | null;
+  syncType: string;
+  status: "synced" | "error";
+  recordsProcessed: number;
+  recordsCreated: number;
+  message: string;
+}) {
+  const admin = createAdminClient();
+  await admin.from("provider_sync_logs").insert({
+    user_id: params.userId,
+    provider: provider.providerKey,
+    sync_type: params.syncType,
+    status: params.status,
+    records_processed: params.recordsProcessed,
+    records_created: params.recordsCreated,
+    started_at: new Date().toISOString(),
+    finished_at: new Date().toISOString(),
+    message: params.message,
+  });
+}
+
 export async function runProviderIngestForUser(settings: UserSettings) {
   if (!hasSupabaseEnv()) {
-    return { matchesCreated: 0, oddsCreated: 0, signalsCreated: 0, provider: provider.displayName };
+    return { matchesCreated: 0, oddsCreated: 0, signalsCreated: 0, alertsCreated: 0, provider: provider.displayName };
   }
 
   const admin = createAdminClient();
@@ -139,29 +135,27 @@ export async function runProviderIngestForUser(settings: UserSettings) {
   let matchesCreated = 0;
   let oddsCreated = 0;
   let signalsCreated = 0;
+  let alertsCreated = 0;
 
-  for (const { fixture } of records) {
-    const trackedMatchId = await upsertTrackedMatch(admin, settings, fixture);
+  for (const { game, evaluatedSignals } of records) {
+    const trackedMatchId = await upsertTrackedMatch(admin, settings, game);
+    const gameId = await upsertGameRecord(game);
     matchesCreated += 1;
 
-    if (fixture.odds !== null && fixture.bookmaker) {
-      const { error: oddsError } = await admin.from("odds_snapshots").insert({
-        user_id: settings.user_id,
-        tracked_match_id: trackedMatchId,
-        market_type: settings.preferred_market_type,
-        bookmaker: fixture.bookmaker,
-        decimal_odds: Number(fixture.odds.toFixed(2)),
-        captured_at: new Date().toISOString(),
-        source: fixture.source,
-      });
-
-      if (!oddsError) {
-        oddsCreated += 1;
-      }
+    if (await insertOddsSnapshot(admin, settings, trackedMatchId, game)) {
+      oddsCreated += 1;
     }
 
-    if (provider.supportsAutomaticTriggers && await insertSignalIfTriggered(admin, settings, fixture)) {
-      signalsCreated += 1;
+    if (provider.supportsAutomaticTriggers) {
+      const created = await persistTriggeredAlerts({
+        userId: settings.user_id,
+        settings,
+        gameId,
+        game,
+        evaluatedSignals,
+      });
+      signalsCreated += created.liveSignalsCreated;
+      alertsCreated += created.alertsCreated;
     }
   }
 
@@ -176,12 +170,21 @@ export async function runProviderIngestForUser(settings: UserSettings) {
     notes: `${provider.displayName} ingest completed successfully.`,
   });
 
-  return { matchesCreated, oddsCreated, signalsCreated, provider: provider.displayName };
+  await writeSyncLog({
+    userId: settings.user_id,
+    syncType: "fixture_sync",
+    status: "synced",
+    recordsProcessed: records.length,
+    recordsCreated: matchesCreated + alertsCreated,
+    message: `${provider.displayName} ingest completed successfully.`,
+  });
+
+  return { matchesCreated, oddsCreated, signalsCreated, alertsCreated, provider: provider.displayName };
 }
 
 export async function runProviderIngestForAllUsers() {
   if (!hasSupabaseEnv()) {
-    return { runsCreated: 0, matchesCreated: 0, oddsCreated: 0, signalsCreated: 0, provider: provider.displayName };
+    return { runsCreated: 0, matchesCreated: 0, oddsCreated: 0, signalsCreated: 0, alertsCreated: 0, provider: provider.displayName };
   }
 
   const admin = createAdminClient();
@@ -194,6 +197,7 @@ export async function runProviderIngestForAllUsers() {
   let matchesCreated = 0;
   let oddsCreated = 0;
   let signalsCreated = 0;
+  let alertsCreated = 0;
 
   for (const settings of settingsRows as UserSettings[]) {
     const result = await runProviderIngestForUser(settings);
@@ -201,9 +205,10 @@ export async function runProviderIngestForAllUsers() {
     matchesCreated += result.matchesCreated;
     oddsCreated += result.oddsCreated;
     signalsCreated += result.signalsCreated;
+    alertsCreated += result.alertsCreated;
   }
 
-  return { runsCreated, matchesCreated, oddsCreated, signalsCreated, provider: provider.displayName };
+  return { runsCreated, matchesCreated, oddsCreated, signalsCreated, alertsCreated, provider: provider.displayName };
 }
 
 export async function captureOddsSnapshotsForUser(settings: UserSettings, matches: TrackedMatchRecord[]) {
@@ -240,6 +245,15 @@ export async function captureOddsSnapshotsForUser(settings: UserSettings, matche
     started_at: new Date().toISOString(),
     finished_at: new Date().toISOString(),
     notes: `${provider.displayName} odds snapshot sync completed.`,
+  });
+
+  await writeSyncLog({
+    userId: settings.user_id,
+    syncType: "odds_sync",
+    status: "synced",
+    recordsProcessed: matches.length,
+    recordsCreated: snapshotsCreated,
+    message: `${provider.displayName} odds snapshot sync completed.`,
   });
 
   return { snapshotsCreated };

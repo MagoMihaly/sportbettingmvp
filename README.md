@@ -1,46 +1,55 @@
 # European Hockey Signal Engine
 
-European hockey signal tracking MVP built with Next.js App Router, TypeScript, Tailwind CSS and Supabase. The app is structured as a clean foundation for signal logging, watched league management, notification preferences, provider-driven ingest and future backtesting or alerting layers.
+Production-style MVP foundation for a hockey live alert platform built on Next.js, TypeScript and Supabase. The current codebase keeps the existing landing/auth/member shell, then extends it with a cleaner alert-oriented architecture: protected dashboard, league selection, realtime-ready alerts feed, push subscription storage, provider abstraction and scheduler-compatible ingest modules.
 
-## Repository
+## What is already in the app
 
-- GitHub: [MagoMihaly/sportbettingmvp](https://github.com/MagoMihaly/sportbettingmvp)
+- Premium dark landing page and member shell
+- Supabase Auth login/register/logout flow
+- Protected member area
+- Dashboard with recent signals, watched leagues and engine controls
+- League settings and notification settings
+- Manual signal logging
+- Provider abstraction with `mock`, `TheSportsDB`, `balldontlie NHL` and `hybrid`
+- Scheduler-ready ingest routes for Vercel cron
 
-## Product scope
+## What this refactor adds
 
-- Landing page with product positioning and workflow sections
-- Supabase Auth with protected member area
-- Member dashboard with signal stats and latest activity
-- Signal logging table with filters, sorting and empty states
-- Manual `Add Signal` flow with automatic 3rd-period eligibility hint
-- League settings and notification settings per user
-- Mock plus real provider ingest architecture for future live sports integration
-- Vercel-ready cron endpoints for ingest and odds snapshot jobs
+- Stronger member auth guard at layout level
+- Realtime-ready `alerts` feed structure
+- Browser push subscription flow with service worker registration
+- Push subscription persistence in Supabase
+- Flexible signal engine base with typed trigger rules
+- Extended Supabase schema for profiles, leagues, user_leagues, games, live_signals, alerts, push_subscriptions and provider_sync_logs
+- Cleaner provider contract for scheduled games, live games, game details and future market adapters
 
 ## Tech stack
 
-- Next.js 16 App Router
+- Next.js App Router
 - TypeScript
 - Tailwind CSS
-- Supabase Auth + Database
-- Local shadcn-style UI primitives
-- Vercel-ready routing and cron configuration
+- Supabase Auth
+- Supabase Postgres
+- Supabase Realtime-ready client subscriptions
+- Vercel-ready deployment and cron setup
 
-## Project structure
+## Main structure
 
-- `app/`: landing, auth, member routes and cron API routes
-- `components/`: layout, forms, tables, dashboard cards and engine panels
-- `components/ui/`: reusable UI primitives aligned with shadcn conventions
+- `app/`: routes, layouts, auth pages and API endpoints
 - `actions/`: server actions for auth, settings, signals and engine controls
+- `components/`: dashboard, forms, push/realtime UI and member layout pieces
+- `components/ui/`: reusable UI primitives
+- `hooks/`: client hooks including realtime alerts subscription
+- `lib/config/`: site config, league config and provider aliases
+- `lib/data/`: dashboard aggregation and server-side member data loading
+- `lib/providers/`: provider abstraction and adapters
+- `lib/push/`: push subscription parsing and delivery placeholders
+- `lib/services/`: signal engine, alerts, notifications and ingest services
 - `lib/supabase/`: browser, server and admin Supabase clients
-- `lib/services/`: signal engine, notifications, ingest and odds snapshot services
-- `lib/providers/`: provider adapters for mock, TheSportsDB and balldontlie NHL
-- `lib/data/`: dashboard and engine aggregation helpers
-- `lib/config/`: league configuration and product constants
-- `supabase/migrations/`: schema, RLS and engine table setup
-- `supabase/seed.sql`: demo seed template for base signal data
+- `lib/types/`: domain, dashboard, provider and database types
+- `supabase/migrations/`: schema and migration-ready SQL
 
-## Environment
+## Environment variables
 
 Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example).
 
@@ -48,90 +57,120 @@ Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-or-legacy-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SECRET_KEY=your-secret-key
-SUPABASE_SERVICE_ROLE_KEY=your-secret-or-service-role-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CRON_SECRET=your-cron-secret
 LIVE_HOCKEY_PROVIDER=hybrid
+PROVIDER_API_KEY=your-generic-provider-api-key
 THESPORTSDB_API_KEY=123
 THESPORTSDB_API_VERSION=v1
 BALLDONTLIE_NHL_API_KEY=your-balldontlie-nhl-api-key
+WEB_PUSH_VAPID_PUBLIC_KEY=your-web-push-public-key
+WEB_PUSH_VAPID_PRIVATE_KEY=your-web-push-private-key
 ```
 
 Notes:
-- `.env.local` is intentionally excluded from Git and should never be committed.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is the preferred client key for new Supabase projects.
-- `CRON_SECRET` must also be added in Vercel so scheduled jobs can authenticate.
-
-## Provider stack
-
-The engine supports a hybrid provider model.
-
-- `TheSportsDB` covers the European watchlist and general fixture ingestion.
-- `balldontlie NHL` covers `NHL` watchlist entries and derives first- and second-period goals from play-by-play score deltas on goal events.
-- `mock` remains available as a safe local fallback for demo and offline flows.
-
-Current provider entry points:
-- [hockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/hockeyApi.ts)
-- [theSportsDb.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/theSportsDb.ts)
-- [balldontlieNhl.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/balldontlieNhl.ts)
-- [liveIngest.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/services/liveIngest.ts)
-
-## Automatic trigger logic
-
-Automatic 3rd-period trigger creation works when provider data includes usable period detail.
-
-- If the selected team scores `0` in period 1 and `0` in period 2, the signal becomes eligible for a 3rd-period trigger.
-- In the current real-data stack this is implemented through the balldontlie NHL play-by-play adapter.
-- European leagues still ingest through TheSportsDB, which is currently better suited here for fixture and live-state sync than reliable period-level hockey splits.
+- `.env.local` stays excluded from Git.
+- `PROVIDER_API_KEY` is a generic fallback env for future provider swaps.
+- Web push sending is still placeholder-ready, but the browser subscription flow and database persistence are implemented.
 
 ## Supabase setup
 
-1. Enable Email/Password in Supabase Auth.
-2. Run [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql).
-3. Run [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql).
-4. Optionally adjust the placeholder user UUID in [seed.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/seed.sql) and run the seed.
+Run these migrations in order:
 
-## Engine layer
+1. [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql)
+2. [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql)
+3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
 
-- `tracked_matches`: synced fixture and live score state per user
-- `odds_snapshots`: historical odds capture table
-- `ingest_runs`: scheduler and manual run history
-- [mock-ingest route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/cron/mock-ingest/route.ts): provider ingest endpoint with `GET` and `POST`
-- [odds-sync route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/cron/odds-sync/route.ts): odds snapshot endpoint with `GET` and `POST`
-- [engine page](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/(member)/member/engine/page.tsx): member-facing engine workspace
+The third migration adds:
+- `profiles`
+- `leagues`
+- `user_leagues`
+- `games`
+- `pregame_candidates`
+- `live_signals`
+- `alerts`
+- `push_subscriptions`
+- `provider_sync_logs`
+
+It also seeds the initial leagues and creates default profile/settings rows for new Supabase Auth users.
+
+## Current trigger engine direction
+
+The signal engine is not hardcoded to one single betting rule. The base now supports typed trigger rules such as:
+- `TEAM_NO_GOAL_AFTER_P1`
+- `TEAM_NO_GOAL_AFTER_P2`
+- `TEAM_NO_GOAL_AFTER_P1_AND_P2`
+
+Current evaluator entry point:
+- [signalEngine.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/services/signalEngine.ts)
+
+Current alert persistence flow:
+- provider ingest loads games
+- evaluator derives triggered signals
+- `live_signals` are inserted with duplicate prevention by `signal_key`
+- `alerts` are inserted with duplicate prevention by `fingerprint`
+- dashboard feed updates via Supabase Realtime-ready client subscription
+
+## Push flow
+
+Implemented now:
+- service worker bootstrap on member pages
+- browser push permission request
+- push subscription collection
+- subscription stored in `push_subscriptions`
+- public VAPID key endpoint
+- placeholder send utility for future Web Push / Edge Function delivery
+
+Relevant files:
+- [push-subscription-card.tsx](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/components/push-subscription-card.tsx)
+- [subscription route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/push/subscription/route.ts)
+- [public-key route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/push/public-key/route.ts)
+- [sw.js](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/public/sw.js)
+
+## Realtime alerts feed
+
+The dashboard now includes a client-side alerts feed that subscribes to `alerts` inserts for the current user.
+
+Relevant files:
+- [realtime-alerts-feed.tsx](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/components/realtime-alerts-feed.tsx)
+- [use-alerts-feed.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/hooks/use-alerts-feed.ts)
+
+## Provider architecture
+
+Provider contract now exposes:
+- `getScheduledGames()`
+- `getLiveGames()`
+- `getGameDetails()`
+- `getMarketData()`
+
+Current adapters:
+- [mockHockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/mockHockeyApi.ts)
+- [theSportsDb.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/theSportsDb.ts)
+- [balldontlieNhl.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/balldontlieNhl.ts)
+- [hockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/hockeyApi.ts)
 
 ## Local development
 
 1. `npm install`
 2. Create `.env.local`
-3. Run the Supabase SQL migrations
-4. Add `BALLDONTLIE_NHL_API_KEY` if you want real NHL play-by-play sync
+3. Run the three SQL migration files in Supabase SQL Editor
+4. If you want real NHL play-by-play, set `BALLDONTLIE_NHL_API_KEY`
 5. `npm run dev`
 6. Open `http://localhost:3000`
 
 ## Vercel deployment
 
 1. Import the GitHub repository into Vercel.
-2. Add all variables from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example) to the Vercel project.
-3. Set `NEXT_PUBLIC_APP_URL` to your production domain.
-4. Keep [vercel.json](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/vercel.json) in the repo so Vercel Cron Jobs are created automatically.
-5. Ensure `CRON_SECRET` is identical in Vercel env vars and in any manual cron requests.
-6. Redeploy after setting environment variables.
+2. Add every variable from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example).
+3. Set `NEXT_PUBLIC_APP_URL` to the production domain.
+4. Keep [vercel.json](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/vercel.json) in the repo so cron jobs are provisioned automatically.
+5. Redeploy after env setup.
 
-The current Vercel cron schedule is:
+Current cron schedule:
 - `0 * * * *` -> `/api/cron/mock-ingest`
 - `15 * * * *` -> `/api/cron/odds-sync`
-
-Manual examples:
-
-```bash
-curl -X GET https://your-domain.com/api/cron/mock-ingest \
-  -H "Authorization: Bearer your-cron-secret"
-
-curl -X GET https://your-domain.com/api/cron/odds-sync \
-  -H "Authorization: Bearer your-cron-secret"
-```
 
 ## Verification
 

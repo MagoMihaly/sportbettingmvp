@@ -1,11 +1,21 @@
-export type ExternalHockeyFixture = {
+export type ExternalGameStatus = "scheduled" | "live" | "finished";
+
+export type ExternalMarketData = {
+  marketType: string;
+  bookmaker: string | null;
+  odds: number | null;
+  source: string;
+  payload: Record<string, unknown>;
+};
+
+export type ExternalHockeyGame = {
   externalMatchId: string;
   externalLeagueId: string | null;
   league: string;
   homeTeam: string;
   awayTeam: string;
   startTime: string;
-  status: "scheduled" | "live" | "finished";
+  status: ExternalGameStatus;
   homeScore: number;
   awayScore: number;
   period1HomeGoals: number | null;
@@ -23,5 +33,8 @@ export interface HockeyApiProvider {
   readonly displayName: string;
   readonly supportsAutomaticTriggers: boolean;
   supportsLeague(league: string): boolean;
-  getUpcomingFixtures(leagues: string[]): Promise<ExternalHockeyFixture[]>;
+  getScheduledGames(leagues: string[]): Promise<ExternalHockeyGame[]>;
+  getLiveGames(leagues: string[]): Promise<ExternalHockeyGame[]>;
+  getGameDetails(externalMatchId: string, league?: string): Promise<ExternalHockeyGame | null>;
+  getMarketData(externalMatchId: string, marketType: string): Promise<ExternalMarketData[]>;
 }

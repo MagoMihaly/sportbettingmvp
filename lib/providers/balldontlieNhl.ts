@@ -1,5 +1,5 @@
 import { normalizeProviderValue } from "@/lib/config/providerLeagues";
-import { ExternalHockeyFixture, HockeyApiProvider } from "@/lib/types/provider";
+import type { ExternalHockeyGame, ExternalMarketData, HockeyApiProvider } from "@/lib/types/provider";
 
 type BalldontlieTeam = {
   id: number;
@@ -35,7 +35,7 @@ export class BalldontlieNhlProvider implements HockeyApiProvider {
   readonly displayName = "balldontlie NHL";
   readonly supportsAutomaticTriggers = true;
 
-  private readonly apiKey = process.env.BALLDONTLIE_NHL_API_KEY ?? "";
+  private readonly apiKey = process.env.BALLDONTLIE_NHL_API_KEY ?? process.env.PROVIDER_API_KEY ?? "";
   private readonly baseUrl = "https://api.balldontlie.io/nhl/v1";
 
   supportsLeague(league: string) {
@@ -146,17 +146,13 @@ export class BalldontlieNhlProvider implements HockeyApiProvider {
     return scores;
   }
 
-  async getUpcomingFixtures(leagues: string[]) {
-    if (!leagues.some((league) => this.supportsLeague(league))) {
-      return [];
-    }
-
+  private async hydrateGames() {
     if (!this.hasApiKey()) {
-      return [];
+      return [] as ExternalHockeyGame[];
     }
 
     const games = await this.loadGames();
-    const fixtures: ExternalHockeyFixture[] = [];
+    const fixtures: ExternalHockeyGame[] = [];
 
     for (const game of games) {
       let periodScores = {
@@ -176,7 +172,7 @@ export class BalldontlieNhlProvider implements HockeyApiProvider {
           period2AwayGoals: computed.period2AwayGoals,
         };
       } catch {
-        // Keep nulls if play-by-play is unavailable for the current tier or request.
+        // Keep nulls if play-by-play is unavailable.
       }
 
       fixtures.push({
@@ -204,5 +200,38 @@ export class BalldontlieNhlProvider implements HockeyApiProvider {
     }
 
     return fixtures.sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+  }
+
+  async getScheduledGames(leagues: string[]) {
+    if (!leagues.some((league) => this.supportsLeague(league))) {
+      return [];
+    }
+
+    return (await this.hydrateGames()).filter((game) => game.status !== "live");
+  }
+
+  async getLiveGames(leagues: string[]) {
+    if (!leagues.some((league) => this.supportsLeague(league))) {
+      return [];
+    }
+
+    return (await this.hydrateGames()).filter((game) => game.status === "live");
+  }
+
+  async getGameDetails(externalMatchId: string) {
+    const games = await this.hydrateGames();
+    return games.find((game) => game.externalMatchId === externalMatchId) ?? null;
+  }
+
+  async getMarketData(externalMatchId: string, marketType: string) {
+    return [
+      {
+        marketType,
+        bookmaker: null,
+        odds: null,
+        source: "balldontlie-nhl",
+        payload: { externalMatchId, note: "Odds endpoint placeholder for later provider expansion." },
+      },
+    ] satisfies ExternalMarketData[];
   }
 }

@@ -1,2 +1,1 @@
-export { deriveSignalState, isEligibleThirdPeriodTrigger } from "./signalEngine";
-
+export { deriveSignalState, evaluateGameSignals, getTriggeredSignals, isEligibleThirdPeriodTrigger } from "./signalEngine";

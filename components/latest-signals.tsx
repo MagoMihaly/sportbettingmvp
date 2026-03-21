@@ -10,7 +10,7 @@ export function LatestSignals({ signals }: { signals: SignalRecord[] }) {
     <Card>
       <CardHeader>
         <CardDescription>Latest signals</CardDescription>
-        <CardTitle>Recent activity</CardTitle>
+        <CardTitle>Recent signal activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {latest.length === 0 ? (
@@ -32,5 +32,3 @@ export function LatestSignals({ signals }: { signals: SignalRecord[] }) {
     </Card>
   );
 }
-
-
