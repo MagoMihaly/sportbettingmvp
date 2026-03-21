@@ -1,3 +1,5 @@
+"use client";
+
 import { Activity, Bell, ChartColumn, Home, Settings2, UserCircle2 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
