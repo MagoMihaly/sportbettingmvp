@@ -6,23 +6,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-async function handleOddsSync(request: Request) {
+async function handleRequest(request: Request) {
   if (!isSchedulerAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await runScheduledOddsSync();
-  return NextResponse.json({
-    ...payload,
-    deprecated: true,
-    replacement: "/api/internal/capture-odds-snapshots",
-  });
+  return NextResponse.json(payload);
 }
 
 export async function GET(request: Request) {
-  return handleOddsSync(request);
+  return handleRequest(request);
 }
 
 export async function POST(request: Request) {
-  return handleOddsSync(request);
+  return handleRequest(request);
 }

@@ -11,7 +11,7 @@ Production-style MVP foundation for a hockey live alert platform built on Next.j
 - League settings and notification settings
 - Manual signal logging
 - Provider abstraction with `mock`, `TheSportsDB`, `balldontlie NHL` and `hybrid`
-- Scheduler-ready ingest routes for Vercel cron
+- Scheduler-ready ingest routes with protected HTTP endpoints and external scheduling
 
 ## What this refactor adds
 
@@ -31,7 +31,7 @@ Production-style MVP foundation for a hockey live alert platform built on Next.j
 - Supabase Auth
 - Supabase Postgres
 - Supabase Realtime-ready client subscriptions
-- Vercel-ready deployment and cron setup
+- Vercel-ready deployment with decoupled external scheduling
 
 ## Main structure
 
@@ -51,7 +51,7 @@ Production-style MVP foundation for a hockey live alert platform built on Next.j
 
 ## Environment variables
 
-Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example).
+Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/.env.example).
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -79,9 +79,9 @@ Notes:
 
 Run these migrations in order:
 
-1. [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql)
-2. [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql)
-3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
+1. [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql)
+2. [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql)
+3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
 
 The third migration adds:
 - `profiles`
@@ -104,7 +104,7 @@ The signal engine is not hardcoded to one single betting rule. The base now supp
 - `TEAM_NO_GOAL_AFTER_P1_AND_P2`
 
 Current evaluator entry point:
-- [signalEngine.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/services/signalEngine.ts)
+- [signalEngine.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/lib/services/signalEngine.ts)
 
 Current alert persistence flow:
 - provider ingest loads games
@@ -124,18 +124,18 @@ Implemented now:
 - placeholder send utility for future Web Push / Edge Function delivery
 
 Relevant files:
-- [push-subscription-card.tsx](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/components/push-subscription-card.tsx)
-- [subscription route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/push/subscription/route.ts)
-- [public-key route](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/push/public-key/route.ts)
-- [sw.js](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/public/sw.js)
+- [push-subscription-card.tsx](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/components/push-subscription-card.tsx)
+- [subscription route](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/app/api/push/subscription/route.ts)
+- [public-key route](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/app/api/push/public-key/route.ts)
+- [sw.js](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/public/sw.js)
 
 ## Realtime alerts feed
 
 The dashboard now includes a client-side alerts feed that subscribes to `alerts` inserts for the current user.
 
 Relevant files:
-- [realtime-alerts-feed.tsx](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/components/realtime-alerts-feed.tsx)
-- [use-alerts-feed.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/hooks/use-alerts-feed.ts)
+- [realtime-alerts-feed.tsx](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/components/realtime-alerts-feed.tsx)
+- [use-alerts-feed.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/hooks/use-alerts-feed.ts)
 
 ## Provider architecture
 
@@ -146,10 +146,10 @@ Provider contract now exposes:
 - `getMarketData()`
 
 Current adapters:
-- [mockHockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/mockHockeyApi.ts)
-- [theSportsDb.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/theSportsDb.ts)
-- [balldontlieNhl.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/balldontlieNhl.ts)
-- [hockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/providers/hockeyApi.ts)
+- [mockHockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/lib/providers/mockHockeyApi.ts)
+- [theSportsDb.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/lib/providers/theSportsDb.ts)
+- [balldontlieNhl.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/lib/providers/balldontlieNhl.ts)
+- [hockeyApi.ts](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/lib/providers/hockeyApi.ts)
 
 ## Local development
 
@@ -165,14 +165,37 @@ Current adapters:
 1. Import the GitHub repository into Vercel.
 2. Add every variable from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example).
 3. Set `NEXT_PUBLIC_APP_URL` to the production domain.
-4. Keep [vercel.json](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/vercel.json) in the repo so cron jobs are provisioned automatically.
+4. Do not add native Vercel cron config for this project on Hobby. Scheduling is handled outside the deploy.
 5. Redeploy after env setup.
 
-Current cron schedule:
-- `0 * * * *` -> `/api/cron/mock-ingest`
-- `15 * * * *` -> `/api/cron/odds-sync`
+## Scheduler architecture
+
+The deploy no longer depends on native Vercel Cron Jobs.
+
+Protected serverless endpoints:
+- [check-hockey-triggers](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/internal/check-hockey-triggers/route.ts)
+- [capture-odds-snapshots](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/app/api/internal/capture-odds-snapshots/route.ts)
+
+Scheduler runner service:
+- [scheduler.ts](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/lib/services/scheduler.ts)
+
+GitHub Actions workflow:
+- [hockey-scheduler.yml](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.github/workflows/hockey-scheduler.yml)
+
+Required GitHub repository secrets:
+- `SCHEDULER_BASE_URL` -> your production base URL, for example `https://your-project.vercel.app`
+- `CRON_SECRET` -> the same bearer token used by the protected scheduler endpoints
+
+Current schedule:
+- every 15 minutes -> trigger check endpoint
+- hourly at minute 5 -> odds snapshot endpoint
+
+Legacy compatibility routes remain available, but they are deprecated:
+- `/api/cron/mock-ingest`
+- `/api/cron/odds-sync`
 
 ## Verification
 
 - `npm run build`
 - `npm run lint`
+

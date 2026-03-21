@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
-import { getCronSecret } from "@/lib/supabase/env";
-import { runProviderIngestForAllUsers } from "@/lib/services/liveIngest";
+import { runScheduledTriggerCheck } from "@/lib/services/scheduler";
+import { isSchedulerAuthorized } from "@/lib/services/schedulerAuth";
 
-function isAuthorized(request: Request) {
-  const header = request.headers.get("authorization") ?? "";
-  const token = header.replace("Bearer ", "");
-  return token && token === getCronSecret();
-}
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function handleIngest(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!isSchedulerAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await runProviderIngestForAllUsers();
-  return NextResponse.json({ ok: true, result });
+  const payload = await runScheduledTriggerCheck();
+  return NextResponse.json({
+    ...payload,
+    deprecated: true,
+    replacement: "/api/internal/check-hockey-triggers",
+  });
 }
 
 export async function GET(request: Request) {
