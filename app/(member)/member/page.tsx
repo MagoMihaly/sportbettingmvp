@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AddSignalForm } from "@/components/add-signal-form";
 import { DashboardStatsGrid } from "@/components/dashboard-stats-grid";
 import { EngineOpsPanel } from "@/components/engine-ops-panel";
 import { LatestSignals } from "@/components/latest-signals";
@@ -60,7 +59,23 @@ export default async function MemberDashboardPage() {
             ))}
           </CardContent>
         </Card>
-        <AddSignalForm />
+        <Card>
+          <CardHeader>
+            <CardDescription>Signal creation flow</CardDescription>
+            <CardTitle>System-generated signals</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm leading-7 text-slate-300">
+            <p>
+              Manual signal input is disabled. Signals are expected to come from the watchlist, provider ingest layer and rule-based evaluator.
+            </p>
+            <p>
+              If you want new signal records, save your leagues first and run the engine sync from the engine workspace.
+            </p>
+            <Button asChild>
+              <Link href="/member/engine">Open engine workspace</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card>
