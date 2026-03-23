@@ -4,6 +4,15 @@ import type {
   OddsSnapshotRecord,
   ProfileRecord,
   PushSubscriptionRecord,
+  SoccerAlertRecord,
+  SoccerDataQualityFlagRecord,
+  SoccerGameRecord,
+  SoccerLiveSignalRecord,
+  SoccerMatchStateSnapshotRecord,
+  SoccerOddsSnapshotRecord,
+  SoccerProviderSyncLogRecord,
+  SoccerUserSettings,
+  SoccerWatchlistRecord,
   SignalRecord,
   TrackedMatchRecord,
   UserSettings,
@@ -54,5 +63,31 @@ export type EnginePayload = {
   oddsSnapshots: OddsSnapshotRecord[];
   ingestRuns: IngestRunRecord[];
   settings: UserSettings | null;
+  provider: ProviderSummary;
+};
+
+export type SoccerDashboardStats = {
+  trackedGames: number;
+  activeLeagues: number;
+  watchlistRows: number;
+  liveSignals: number;
+  triggeredSignals: number;
+  alertsCount: number;
+  oddsSnapshots: number;
+  dataQualityFlags: number;
+};
+
+export type SoccerDashboardPayload = {
+  viewer: DashboardViewer;
+  settings: SoccerUserSettings | null;
+  games: SoccerGameRecord[];
+  watchlists: SoccerWatchlistRecord[];
+  liveSignals: SoccerLiveSignalRecord[];
+  alerts: SoccerAlertRecord[];
+  oddsSnapshots: SoccerOddsSnapshotRecord[];
+  stateSnapshots: SoccerMatchStateSnapshotRecord[];
+  syncLogs: SoccerProviderSyncLogRecord[];
+  dataQualityFlags: SoccerDataQualityFlagRecord[];
+  stats: SoccerDashboardStats;
   provider: ProviderSummary;
 };

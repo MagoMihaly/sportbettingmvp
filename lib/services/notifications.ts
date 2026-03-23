@@ -1,6 +1,8 @@
-import type { AlertRecord, PushSubscriptionRecord, SignalRecord, UserSettings } from "@/lib/types/database";
+import type { AlertRecord, PushSubscriptionRecord, SignalRecord, SoccerUserSettings, UserSettings } from "@/lib/types/database";
 
 export type NotificationChannel = "dashboard" | "email" | "push" | "telegram" | "discord";
+
+type NotificationSettingsLike = Pick<UserSettings, "notifications_enabled" | "email_notifications" | "push_notifications"> | Pick<SoccerUserSettings, "notifications_enabled" | "email_notifications" | "push_notifications">;
 
 export type NotificationPayload = {
   channel: NotificationChannel;
@@ -28,7 +30,7 @@ export function buildAlertDeliveryPayload(alert: AlertRecord): NotificationPaylo
   };
 }
 
-export function getEnabledNotificationChannels(settings: UserSettings | null) {
+export function getEnabledNotificationChannels(settings: NotificationSettingsLike | null) {
   if (!settings || !settings.notifications_enabled) {
     return ["dashboard"] as NotificationChannel[];
   }
@@ -39,7 +41,7 @@ export function getEnabledNotificationChannels(settings: UserSettings | null) {
   return channels;
 }
 
-export function canDeliverPush(settings: UserSettings | null, subscriptions: PushSubscriptionRecord[]) {
+export function canDeliverPush(settings: NotificationSettingsLike | null, subscriptions: PushSubscriptionRecord[]) {
   return Boolean(settings?.notifications_enabled && settings?.push_notifications && subscriptions.some((subscription) => subscription.status === "active"));
 }
 

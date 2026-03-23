@@ -31,3 +31,14 @@ export function getWebPushEnv() {
 export function getProviderApiKey() {
   return process.env.PROVIDER_API_KEY ?? "";
 }
+
+export function isSoccerModuleEnabled() {
+  return (process.env.SOCCER_MODULE_ENABLED ?? "false").toLowerCase() === "true";
+}
+
+export function getApiFootballEnv() {
+  return {
+    apiKey: process.env.API_FOOTBALL_API_KEY ?? "",
+    baseUrl: process.env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io",
+  };
+}

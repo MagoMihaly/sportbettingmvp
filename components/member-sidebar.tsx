@@ -1,21 +1,22 @@
 "use client";
 
-import { Activity, Bell, ChartColumn, Home, Settings2, UserCircle2 } from "lucide-react";
+import { Activity, Bell, ChartColumn, Home, Settings2, Trophy, UserCircle2 } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { MobileSidebar } from "@/components/mobile-sidebar";
 import { SignOutButton } from "@/components/sign-out-button";
 
-const navItems = [
-  { href: "/member", label: "Dashboard", icon: Home },
-  { href: "/member/signals", label: "Signals", icon: ChartColumn },
-  { href: "/member/engine", label: "Engine", icon: Activity },
-  { href: "/member/leagues", label: "Leagues", icon: Settings2 },
-  { href: "/member/notifications", label: "Notifications", icon: Bell },
-  { href: "/member/account", label: "Account", icon: UserCircle2 },
-];
+export function MemberSidebar({ soccerEnabled = false }: { soccerEnabled?: boolean }) {
+  const navItems = [
+    { href: "/member", label: "Dashboard", icon: Home },
+    { href: "/member/signals", label: "Signals", icon: ChartColumn },
+    { href: "/member/engine", label: "Engine", icon: Activity },
+    ...(soccerEnabled ? [{ href: "/member/soccer", label: "Soccer", icon: Trophy }] : []),
+    { href: "/member/leagues", label: "Leagues", icon: Settings2 },
+    { href: "/member/notifications", label: "Notifications", icon: Bell },
+    { href: "/member/account", label: "Account", icon: UserCircle2 },
+  ];
 
-export function MemberSidebar() {
   return (
     <>
       <aside className="hidden w-72 flex-col border-r border-white/10 bg-slate-950/90 p-6 lg:flex">
