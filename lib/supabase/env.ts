@@ -36,6 +36,14 @@ export function isSoccerModuleEnabled() {
   return (process.env.SOCCER_MODULE_ENABLED ?? "false").toLowerCase() === "true";
 }
 
+export function isSoccerFreePlanSafeMode() {
+  return (process.env.SOCCER_FREE_PLAN_SAFE_MODE ?? "false").toLowerCase() === "true";
+}
+
+export function getSoccerResearchReferenceDate() {
+  return process.env.SOCCER_RESEARCH_REFERENCE_DATE ?? "";
+}
+
 export function getApiFootballEnv() {
   return {
     apiKey: process.env.API_FOOTBALL_API_KEY ?? "",

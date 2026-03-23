@@ -25,7 +25,7 @@ Implemented soccer trigger targets:
 
 ## Environment variables
 
-Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.env.example).
+Create `.env.local` from [`.env.example`](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/.env.example).
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -57,10 +57,10 @@ Recommended rollout:
 ## Supabase setup
 
 Run these migrations in order:
-1. [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql)
-2. [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql)
-3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
-4. [004_soccer_module_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/004_soccer_module_foundation.sql)
+1. [001_initial_schema.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/001_initial_schema.sql)
+2. [002_engine_tables.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/002_engine_tables.sql)
+3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
+4. [004_soccer_module_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/supabase/migrations/004_soccer_module_foundation.sql)
 
 The soccer migration adds:
 - `soccer_user_settings`
@@ -76,6 +76,23 @@ The soccer migration adds:
 
 It also seeds the 12 target soccer leagues into the shared `leagues` table with `sport='soccer'`.
 
+
+## API-Football free-plan safe mode
+
+Use this mode when the account can authenticate but cannot access the current season, live parameters or odds coverage.
+
+Env switches:
+- `SOCCER_FREE_PLAN_SAFE_MODE=true`
+- optional `SOCCER_RESEARCH_REFERENCE_DATE=2025-03-15`
+
+Behavior in safe mode:
+- soccer live polling is disabled
+- odds/live polling is disabled
+- fixture sync falls back to an accessible historical season window
+- watchlists and trigger evaluation can still be replay-tested on historical fixtures
+- data quality flags explicitly show when odds coverage is unavailable on the current plan
+
+Use this for research and pipeline validation only, not production alerting.
 ## Scheduler endpoints
 
 Hockey:
@@ -91,7 +108,7 @@ All scheduler endpoints are protected by `Authorization: Bearer <CRON_SECRET>`.
 ## GitHub Actions scheduling
 
 Workflow file:
-- [hockey-scheduler.yml](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/.github/workflows/hockey-scheduler.yml)
+- [hockey-scheduler.yml](C:/Users/mago4/OneDrive/Asztali%20gĂ©p/Appok/Sportsbetting/.github/workflows/hockey-scheduler.yml)
 
 Repository secrets required:
 - `SCHEDULER_BASE_URL`

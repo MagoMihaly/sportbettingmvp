@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSoccerDashboardData } from "@/lib/data/soccer";
-import { getApiFootballEnv } from "@/lib/supabase/env";
+import { getApiFootballEnv, isSoccerFreePlanSafeMode } from "@/lib/supabase/env";
 
 export default async function SoccerDashboardPage() {
   const { alerts, dataQualityFlags, provider, settings, stats, syncLogs, watchlists } = await getSoccerDashboardData();
   const hasApiKey = Boolean(getApiFootballEnv().apiKey);
+  const safeMode = isSoccerFreePlanSafeMode();
   const latestError = syncLogs.find((log) => log.status === "error")?.message ?? null;
 
   return (
@@ -31,6 +32,7 @@ export default async function SoccerDashboardPage() {
             <div className="flex flex-wrap gap-3">
               <Badge variant="info">Second-sport module</Badge>
               <Badge variant={hasApiKey ? "success" : "warning"}>{hasApiKey ? "API key present" : "API key missing"}</Badge>
+              <Badge variant={safeMode ? "warning" : "success"}>{safeMode ? "Free-plan safe mode" : "Live mode"}</Badge>
               <Badge variant={provider.supportsAutomaticTriggers ? "success" : "warning"}>
                 {provider.supportsAutomaticTriggers ? "Auto trigger capable" : "Manual verification needed"}
               </Badge>
@@ -52,7 +54,11 @@ export default async function SoccerDashboardPage() {
           <CardContent className="space-y-3 text-sm text-slate-300">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Flags detected: {dataQualityFlags.length}</div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Notifications: {settings?.notifications_enabled ? "Enabled" : "Muted"}</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Scheduler endpoints are ready once the API key is configured.</div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              {safeMode
+                ? "Safe mode uses accessible historical season windows and disables live odds polling."
+                : "Scheduler endpoints are ready for live current-season polling."}
+            </div>
             {latestError ? (
               <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">
                 Latest provider error: {latestError}

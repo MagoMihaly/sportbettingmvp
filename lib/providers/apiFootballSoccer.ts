@@ -1,4 +1,4 @@
-import { getApiFootballEnv } from "@/lib/supabase/env";
+import { getApiFootballEnv, getSoccerResearchReferenceDate, isSoccerFreePlanSafeMode } from "@/lib/supabase/env";
 import { getCurrentSoccerSeason, getSoccerLeagueConfig } from "@/lib/config/soccerLeagues";
 import type { SoccerMarketKey } from "@/lib/config/soccerMarkets";
 import type { ExternalSoccerGame, ExternalSoccerMarketData, SoccerApiProvider } from "@/lib/types/soccer";
@@ -49,6 +49,12 @@ type ApiFootballOddsResponse = {
 type ApiFootballEnvelope = {
   response?: Record<string, unknown>[];
   errors?: Record<string, string | string[]>;
+};
+
+type LeagueContext = {
+  leagueId: number;
+  season: number;
+  oddsAvailable: boolean;
 };
 
 function normalizeValue(value: string) {
@@ -155,12 +161,49 @@ function buildSeasonFallbacks() {
   return [currentSeason, currentSeason - 1, currentSeason - 2].filter((value, index, list) => list.indexOf(value) === index);
 }
 
+function getSafeModeBaseDate() {
+  const override = getSoccerResearchReferenceDate();
+  if (override) {
+    const parsed = new Date(`${override}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  const base = new Date();
+  base.setUTCFullYear(base.getUTCFullYear() - 1);
+  return base;
+}
+
+function getFixtureWindow(context: LeagueContext) {
+  if (!isSoccerFreePlanSafeMode()) {
+    const from = new Date();
+    const to = new Date(from.getTime() + 3 * 24 * 60 * 60 * 1000);
+    return {
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    };
+  }
+
+  const baseDate = getSafeModeBaseDate();
+  const seasonAligned = new Date(baseDate);
+  if (context.season !== getCurrentSoccerSeason()) {
+    seasonAligned.setUTCFullYear(context.season + 1);
+  }
+  const from = new Date(seasonAligned.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const to = new Date(seasonAligned.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
+
 export class ApiFootballSoccerProvider implements SoccerApiProvider {
   readonly providerKey = "api-football";
   readonly displayName = "API-Football Pro";
   readonly supportsAutomaticTriggers = true;
   private readonly env = getApiFootballEnv();
-  private readonly leagueCache = new Map<string, { leagueId: number; season: number; oddsAvailable: boolean }>();
+  private readonly leagueCache = new Map<string, LeagueContext>();
 
   supportsLeague(leagueSlug: string) {
     return Boolean(getSoccerLeagueConfig(leagueSlug));
@@ -194,7 +237,7 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
     return body.response ?? [];
   }
 
-  private async resolveLeagueContext(leagueSlug: string) {
+  async resolveLeagueContext(leagueSlug: string) {
     const cached = this.leagueCache.get(leagueSlug);
     if (cached) {
       return cached;
@@ -243,10 +286,6 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getScheduledGames(leagueSlugs: string[]) {
-    const from = new Date();
-    const to = new Date(from.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const fromValue = from.toISOString().slice(0, 10);
-    const toValue = to.toISOString().slice(0, 10);
     const fixtures = await Promise.all(
       leagueSlugs.map(async (leagueSlug) => {
         const context = await this.resolveLeagueContext(leagueSlug);
@@ -254,11 +293,12 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
           return [] as ExternalSoccerGame[];
         }
 
+        const window = getFixtureWindow(context);
         const rows = (await this.request("fixtures", {
           league: String(context.leagueId),
           season: String(context.season),
-          from: fromValue,
-          to: toValue,
+          from: window.from,
+          to: window.to,
         })) as ApiFootballFixtureResponse[];
 
         return rows
@@ -271,6 +311,10 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getLiveGames(leagueSlugs: string[]) {
+    if (isSoccerFreePlanSafeMode()) {
+      return [];
+    }
+
     const leagueIdMap = new Map<number, string>();
     for (const slug of leagueSlugs) {
       const context = await this.resolveLeagueContext(slug);
@@ -292,6 +336,10 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getMarketData(externalMatchId: string, marketKey: SoccerMarketKey) {
+    if (isSoccerFreePlanSafeMode()) {
+      return [];
+    }
+
     try {
       const rows = (await this.request("odds/live", { fixture: externalMatchId })) as ApiFootballOddsResponse[];
       return rows.flatMap((row) =>
