@@ -31,6 +31,11 @@ type ApiFootballOddsResponse = {
   }>;
 };
 
+type ApiFootballEnvelope = {
+  response?: Record<string, unknown>[];
+  errors?: Record<string, string | string[]>;
+};
+
 function normalizeValue(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -102,8 +107,28 @@ function mapFixtureToGame(payload: ApiFootballFixtureResponse, fallbackLeagueSlu
 function findTargetOdd(values: ApiFootballOddsValue[] | undefined, marketKey: SoccerMarketKey) {
   const targetLabel = marketKey === "H2_2H_OVER_1_5" ? "over 1.5" : "over 0.5";
   const candidate = (values ?? []).find((value) => normalizeValue(value.value ?? "").includes(targetLabel));
-  const odd = parseNumericStat(candidate?.odd ?? null);
-  return odd;
+  return parseNumericStat(candidate?.odd ?? null);
+}
+
+function extractApiError(errors: ApiFootballEnvelope["errors"]) {
+  if (!errors) {
+    return null;
+  }
+
+  const entries = Object.entries(errors).filter(([, value]) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return Boolean(value);
+  });
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const [key, value] = entries[0];
+  const message = Array.isArray(value) ? value.join(", ") : value;
+  return `[${key}] ${message}`;
 }
 
 export class ApiFootballSoccerProvider implements SoccerApiProvider {
@@ -119,7 +144,7 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
 
   private async request(path: string, params: Record<string, string>) {
     if (!this.env.apiKey) {
-      return [] as Record<string, unknown>[];
+      throw new Error("API-Football API key is missing.");
     }
 
     const url = new URL(path, `${this.env.baseUrl}/`);
@@ -136,7 +161,12 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
       throw new Error(`API-Football request failed with ${response.status}`);
     }
 
-    const body = (await response.json()) as { response?: Record<string, unknown>[] };
+    const body = (await response.json()) as ApiFootballEnvelope;
+    const apiError = extractApiError(body.errors);
+    if (apiError) {
+      throw new Error(`API-Football returned an application error: ${apiError}`);
+    }
+
     return body.response ?? [];
   }
 
@@ -171,10 +201,6 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getScheduledGames(leagueSlugs: string[]) {
-    if (!this.env.apiKey) {
-      return [];
-    }
-
     const season = String(getCurrentSoccerSeason());
     const from = new Date();
     const to = new Date(from.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -204,10 +230,6 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getLiveGames(leagueSlugs: string[]) {
-    if (!this.env.apiKey) {
-      return [];
-    }
-
     const leagueIdMap = new Map<number, string>();
     for (const slug of leagueSlugs) {
       const leagueId = await this.resolveLeagueId(slug);
@@ -224,19 +246,11 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   }
 
   async getGameDetails(externalMatchId: string, leagueSlug?: string) {
-    if (!this.env.apiKey) {
-      return null;
-    }
-
     const rows = (await this.request("fixtures", { id: externalMatchId })) as ApiFootballFixtureResponse[];
     return mapFixtureToGame(rows[0], leagueSlug ?? "england-premier-league");
   }
 
   async getMarketData(externalMatchId: string, marketKey: SoccerMarketKey) {
-    if (!this.env.apiKey) {
-      return [];
-    }
-
     try {
       const rows = (await this.request("odds/live", { fixture: externalMatchId })) as ApiFootballOddsResponse[];
       return rows.flatMap((row) =>
@@ -257,8 +271,9 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
               } satisfies ExternalSoccerMarketData];
         }),
       );
-    } catch {
-      return [];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown market data error";
+      throw new Error(`API-Football market lookup failed: ${message}`);
     }
   }
 }

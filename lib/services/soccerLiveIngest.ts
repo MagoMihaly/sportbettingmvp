@@ -115,11 +115,8 @@ async function replaceDataQualityFlags(admin: ReturnType<typeof createAdminClien
 
 async function ensureWatchlistRows(admin: ReturnType<typeof createAdminClient>, userId: string, gameId: string, game: ExternalSoccerGame) {
   const candidates = evaluateSoccerGameSignals(game);
-  if (candidates.length === 0) {
-    return 0;
-  }
-
   let created = 0;
+
   for (const candidate of candidates) {
     const { data: existing } = await admin
       .from("soccer_watchlists")
@@ -207,61 +204,83 @@ async function writeSyncLog(params: {
   });
 }
 
+function disabledPayload() {
+  return { disabled: true, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, error: null as string | null };
+}
+
+function emptyPayload() {
+  return { disabled: false, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, error: null as string | null };
+}
+
 export async function runSoccerProviderIngestForUser(settings: SoccerUserSettings) {
   if (!isSoccerModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0 };
+    return disabledPayload();
   }
 
   if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0 };
+    return emptyPayload();
   }
 
   const admin = createAdminClient();
-  const games = await getWatchlistGames(settings);
-  let gamesCreated = 0;
-  let watchlistsCreated = 0;
-  let oddsCreated = 0;
-  let liveSignalsCreated = 0;
-  let alertsCreated = 0;
 
-  for (const game of games) {
-    const gameId = await upsertSoccerGame(admin, game);
-    gamesCreated += 1;
-    await insertStateSnapshot(admin, settings.user_id, gameId, game);
-    await replaceDataQualityFlags(admin, settings.user_id, gameId, game);
-    watchlistsCreated += await ensureWatchlistRows(admin, settings.user_id, gameId, game);
-    oddsCreated += await insertOddsSnapshots(admin, settings, gameId, game);
+  try {
+    const games = await getWatchlistGames(settings);
+    let gamesCreated = 0;
+    let watchlistsCreated = 0;
+    let oddsCreated = 0;
+    let liveSignalsCreated = 0;
+    let alertsCreated = 0;
 
-    const created = await persistSoccerTriggeredAlerts({
+    for (const game of games) {
+      const gameId = await upsertSoccerGame(admin, game);
+      gamesCreated += 1;
+      await insertStateSnapshot(admin, settings.user_id, gameId, game);
+      await replaceDataQualityFlags(admin, settings.user_id, gameId, game);
+      watchlistsCreated += await ensureWatchlistRows(admin, settings.user_id, gameId, game);
+      oddsCreated += await insertOddsSnapshots(admin, settings, gameId, game);
+
+      const created = await persistSoccerTriggeredAlerts({
+        userId: settings.user_id,
+        gameId,
+        game,
+        settings,
+        evaluatedSignals: getTriggeredSoccerSignals(game),
+      });
+      liveSignalsCreated += created.liveSignalsCreated;
+      alertsCreated += created.alertsCreated;
+    }
+
+    await writeSyncLog({
       userId: settings.user_id,
-      gameId,
-      game,
-      settings,
-      evaluatedSignals: getTriggeredSoccerSignals(game),
+      syncType: "fixture_sync",
+      status: "synced",
+      recordsProcessed: games.length,
+      recordsCreated: gamesCreated + alertsCreated,
+      message: `${provider.displayName} soccer ingest completed.`,
     });
-    liveSignalsCreated += created.liveSignalsCreated;
-    alertsCreated += created.alertsCreated;
+
+    return { disabled: false, provider: provider.displayName, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated, error: null as string | null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown soccer ingest error";
+    await writeSyncLog({
+      userId: settings.user_id,
+      syncType: "fixture_sync",
+      status: "error",
+      recordsProcessed: 0,
+      recordsCreated: 0,
+      message,
+    });
+    return { ...emptyPayload(), error: message };
   }
-
-  await writeSyncLog({
-    userId: settings.user_id,
-    syncType: "fixture_sync",
-    status: "synced",
-    recordsProcessed: games.length,
-    recordsCreated: gamesCreated + alertsCreated,
-    message: `${provider.displayName} soccer ingest completed.`,
-  });
-
-  return { disabled: false, provider: provider.displayName, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated };
 }
 
 export async function runSoccerProviderIngestForAllUsers() {
   if (!isSoccerModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0 };
+    return { disabled: true, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, errors: [] as string[] };
   }
 
   if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0 };
+    return { disabled: false, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, errors: [] as string[] };
   }
 
   const admin = createAdminClient();
@@ -276,6 +295,7 @@ export async function runSoccerProviderIngestForAllUsers() {
   let oddsCreated = 0;
   let liveSignalsCreated = 0;
   let alertsCreated = 0;
+  const errors: string[] = [];
 
   for (const row of settingsRows as SoccerUserSettings[]) {
     const result = await runSoccerProviderIngestForUser(row);
@@ -285,18 +305,21 @@ export async function runSoccerProviderIngestForAllUsers() {
     oddsCreated += result.oddsCreated;
     liveSignalsCreated += result.liveSignalsCreated;
     alertsCreated += result.alertsCreated;
+    if (result.error) {
+      errors.push(result.error);
+    }
   }
 
-  return { disabled: false, provider: provider.displayName, runsCreated, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated };
+  return { disabled: false, provider: provider.displayName, runsCreated, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated, errors };
 }
 
 export async function captureSoccerOddsSnapshotsForAllUsers() {
   if (!isSoccerModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0 };
+    return { disabled: true, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0, errors: [] as string[] };
   }
 
   if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0 };
+    return { disabled: false, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0, errors: [] as string[] };
   }
 
   const admin = createAdminClient();
@@ -307,51 +330,67 @@ export async function captureSoccerOddsSnapshotsForAllUsers() {
 
   let runsCreated = 0;
   let snapshotsCreated = 0;
+  const errors: string[] = [];
 
   for (const settings of settingsRows as SoccerUserSettings[]) {
-    const { data: games } = await admin
-      .from("soccer_games")
-      .select("*")
-      .order("last_synced_at", { ascending: false })
-      .limit(10);
+    try {
+      const { data: games } = await admin
+        .from("soccer_games")
+        .select("*")
+        .order("last_synced_at", { ascending: false })
+        .limit(10);
 
-    for (const game of (games ?? []) as SoccerGameRecord[]) {
-      const marketData = await provider.getMarketData(game.external_game_id, settings.preferred_market_key as never);
-      for (const market of marketData) {
-        if (market.odds === null || !market.bookmaker) {
-          continue;
-        }
+      for (const game of (games ?? []) as SoccerGameRecord[]) {
+        const marketData = await provider.getMarketData(game.external_game_id, settings.preferred_market_key as never);
+        for (const market of marketData) {
+          if (market.odds === null || !market.bookmaker) {
+            continue;
+          }
 
-        const { error: insertError } = await admin.from("soccer_odds_snapshots").insert({
-          user_id: settings.user_id,
-          game_id: game.id,
-          signal_key: `${game.external_game_id}:${market.marketKey}`,
-          market_key: market.marketKey,
-          bookmaker: market.bookmaker,
-          decimal_odds: Number(market.odds.toFixed(2)),
-          suspended: market.suspended,
-          captured_at: new Date().toISOString(),
-          source: market.source,
-          payload: market.payload,
-        });
+          const { error: insertError } = await admin.from("soccer_odds_snapshots").insert({
+            user_id: settings.user_id,
+            game_id: game.id,
+            signal_key: `${game.external_game_id}:${market.marketKey}`,
+            market_key: market.marketKey,
+            bookmaker: market.bookmaker,
+            decimal_odds: Number(market.odds.toFixed(2)),
+            suspended: market.suspended,
+            captured_at: new Date().toISOString(),
+            source: market.source,
+            payload: market.payload,
+          });
 
-        if (!insertError) {
-          snapshotsCreated += 1;
+          if (!insertError) {
+            snapshotsCreated += 1;
+          }
         }
       }
+    } catch (runError) {
+      const message = runError instanceof Error ? runError.message : "Unknown soccer odds sync error";
+      errors.push(message);
+      await writeSyncLog({
+        userId: settings.user_id,
+        syncType: "odds_sync",
+        status: "error",
+        recordsProcessed: 0,
+        recordsCreated: 0,
+        message,
+      });
     }
 
     runsCreated += 1;
   }
 
-  await writeSyncLog({
-    userId: null,
-    syncType: "odds_sync",
-    status: "synced",
-    recordsProcessed: runsCreated,
-    recordsCreated: snapshotsCreated,
-    message: `${provider.displayName} soccer odds sync completed.`,
-  });
+  if (errors.length === 0) {
+    await writeSyncLog({
+      userId: null,
+      syncType: "odds_sync",
+      status: "synced",
+      recordsProcessed: runsCreated,
+      recordsCreated: snapshotsCreated,
+      message: `${provider.displayName} soccer odds sync completed.`,
+    });
+  }
 
-  return { disabled: false, provider: provider.displayName, runsCreated, snapshotsCreated };
+  return { disabled: false, provider: provider.displayName, runsCreated, snapshotsCreated, errors };
 }
