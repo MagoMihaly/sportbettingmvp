@@ -31,3 +31,22 @@ export function getWebPushEnv() {
 export function getProviderApiKey() {
   return process.env.PROVIDER_API_KEY ?? "";
 }
+
+export function isSoccerModuleEnabled() {
+  return (process.env.SOCCER_MODULE_ENABLED ?? "false").toLowerCase() === "true";
+}
+
+export function isSoccerFreePlanSafeMode() {
+  return (process.env.SOCCER_FREE_PLAN_SAFE_MODE ?? "false").toLowerCase() === "true";
+}
+
+export function getSoccerResearchReferenceDate() {
+  return process.env.SOCCER_RESEARCH_REFERENCE_DATE ?? "";
+}
+
+export function getApiFootballEnv() {
+  return {
+    apiKey: process.env.API_FOOTBALL_API_KEY ?? "",
+    baseUrl: process.env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io",
+  };
+}

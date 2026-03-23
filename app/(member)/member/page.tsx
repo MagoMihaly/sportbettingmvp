@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardData } from "@/lib/data/dashboard";
+import { isSoccerModuleEnabled } from "@/lib/supabase/env";
 
 export default async function MemberDashboardPage() {
   const { alerts, profile, pushSubscriptions, signals, settings, stats, provider, viewer } = await getDashboardData();
+  const soccerEnabled = isSoccerModuleEnabled();
 
   return (
     <div className="space-y-6">
@@ -101,6 +103,22 @@ export default async function MemberDashboardPage() {
         </Card>
         <EngineOpsPanel />
       </div>
+      {soccerEnabled ? (
+        <Card>
+          <CardHeader>
+            <CardDescription>Second sport module</CardDescription>
+            <CardTitle>Soccer workspace is ready</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 text-sm text-slate-300">
+            <p className="max-w-2xl leading-7">
+              The soccer module is isolated from the hockey flow and prepared for API-Football Pro. Add the API key and save the soccer settings to start feeding H2 and H3 watchlists.
+            </p>
+            <Button asChild>
+              <Link href="/member/soccer">Open soccer workspace</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
