@@ -5,15 +5,30 @@ import type { ExternalSoccerGame, ExternalSoccerMarketData, SoccerApiProvider } 
 
 type ApiFootballFixtureResponse = {
   fixture?: { id?: number | string; date?: string; status?: { short?: string; elapsed?: number | null } };
-  league?: { id?: number | string; name?: string; country?: string };
+  league?: { id?: number | string; name?: string; country?: string; season?: number };
   teams?: { home?: { name?: string }; away?: { name?: string } };
   goals?: { home?: number | null; away?: number | null };
   score?: { halftime?: { home?: number | null; away?: number | null } };
   statistics?: Array<{ team?: { name?: string }; statistics?: Array<{ type?: string; value?: string | number | null }> }>;
 };
 
+type ApiFootballLeagueSeason = {
+  year?: number;
+  current?: boolean;
+  coverage?: {
+    fixtures?: {
+      events?: boolean;
+      lineups?: boolean;
+      statistics_fixtures?: boolean;
+      statistics_players?: boolean;
+    };
+    odds?: boolean;
+  };
+};
+
 type ApiFootballLeagueResponse = {
   league?: { id?: number | string; name?: string; type?: string };
+  seasons?: ApiFootballLeagueSeason[];
 };
 
 type ApiFootballOddsValue = {
@@ -131,12 +146,21 @@ function extractApiError(errors: ApiFootballEnvelope["errors"]) {
   return `[${key}] ${message}`;
 }
 
+function isPlanSeasonError(message: string) {
+  return message.toLowerCase().includes("do not have access to this season");
+}
+
+function buildSeasonFallbacks() {
+  const currentSeason = getCurrentSoccerSeason();
+  return [currentSeason, currentSeason - 1, currentSeason - 2].filter((value, index, list) => list.indexOf(value) === index);
+}
+
 export class ApiFootballSoccerProvider implements SoccerApiProvider {
   readonly providerKey = "api-football";
   readonly displayName = "API-Football Pro";
   readonly supportsAutomaticTriggers = true;
   private readonly env = getApiFootballEnv();
-  private readonly leagueCache = new Map<string, number>();
+  private readonly leagueCache = new Map<string, { leagueId: number; season: number; oddsAvailable: boolean }>();
 
   supportsLeague(leagueSlug: string) {
     return Boolean(getSoccerLeagueConfig(leagueSlug));
@@ -170,7 +194,7 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
     return body.response ?? [];
   }
 
-  private async resolveLeagueId(leagueSlug: string) {
+  private async resolveLeagueContext(leagueSlug: string) {
     const cached = this.leagueCache.get(leagueSlug);
     if (cached) {
       return cached;
@@ -181,41 +205,58 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
       return null;
     }
 
-    const season = String(getCurrentSoccerSeason());
-    const leagues = (await this.request("leagues", {
-      country: config.country,
-      season,
-      type: "league",
-    })) as ApiFootballLeagueResponse[];
+    for (const season of buildSeasonFallbacks()) {
+      try {
+        const leagues = (await this.request("leagues", {
+          country: config.country,
+          season: String(season),
+          type: "league",
+        })) as ApiFootballLeagueResponse[];
 
-    const match = leagues.find((entry) => {
-      const name = normalizeValue(entry.league?.name ?? "");
-      return config.searchTerms.some((term) => name.includes(normalizeValue(term)));
-    });
+        const match = leagues.find((entry) => {
+          const name = normalizeValue(entry.league?.name ?? "");
+          return config.searchTerms.some((term) => name.includes(normalizeValue(term)));
+        });
 
-    const leagueId = match?.league?.id ? Number(match.league.id) : null;
-    if (leagueId) {
-      this.leagueCache.set(leagueSlug, leagueId);
+        const leagueId = match?.league?.id ? Number(match.league.id) : null;
+        if (!leagueId) {
+          continue;
+        }
+
+        const seasonCoverage = (match?.seasons ?? []).find((entry) => entry.year === season);
+        const context = {
+          leagueId,
+          season,
+          oddsAvailable: Boolean(seasonCoverage?.coverage?.odds),
+        };
+        this.leagueCache.set(leagueSlug, context);
+        return context;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown API-Football error";
+        if (!isPlanSeasonError(message)) {
+          throw error;
+        }
+      }
     }
-    return leagueId;
+
+    throw new Error(`API-Football could not resolve an accessible season for ${leagueSlug}.`);
   }
 
   async getScheduledGames(leagueSlugs: string[]) {
-    const season = String(getCurrentSoccerSeason());
     const from = new Date();
     const to = new Date(from.getTime() + 3 * 24 * 60 * 60 * 1000);
     const fromValue = from.toISOString().slice(0, 10);
     const toValue = to.toISOString().slice(0, 10);
     const fixtures = await Promise.all(
       leagueSlugs.map(async (leagueSlug) => {
-        const leagueId = await this.resolveLeagueId(leagueSlug);
-        if (!leagueId) {
+        const context = await this.resolveLeagueContext(leagueSlug);
+        if (!context) {
           return [] as ExternalSoccerGame[];
         }
 
         const rows = (await this.request("fixtures", {
-          league: String(leagueId),
-          season,
+          league: String(context.leagueId),
+          season: String(context.season),
           from: fromValue,
           to: toValue,
         })) as ApiFootballFixtureResponse[];
@@ -232,9 +273,9 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
   async getLiveGames(leagueSlugs: string[]) {
     const leagueIdMap = new Map<number, string>();
     for (const slug of leagueSlugs) {
-      const leagueId = await this.resolveLeagueId(slug);
-      if (leagueId) {
-        leagueIdMap.set(leagueId, slug);
+      const context = await this.resolveLeagueContext(slug);
+      if (context) {
+        leagueIdMap.set(context.leagueId, slug);
       }
     }
 
@@ -275,5 +316,9 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
       const message = error instanceof Error ? error.message : "Unknown market data error";
       throw new Error(`API-Football market lookup failed: ${message}`);
     }
+  }
+
+  async getLeagueMeta(leagueSlug: string) {
+    return this.resolveLeagueContext(leagueSlug);
   }
 }

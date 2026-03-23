@@ -35,7 +35,7 @@ export function getTriggeredSoccerSignals(game: ExternalSoccerGame) {
   return evaluateSoccerGameSignals(game).filter((signal) => signal.triggerConditionMet);
 }
 
-export function getSoccerDataQualityFlags(game: ExternalSoccerGame) {
+export function getSoccerDataQualityFlags(game: ExternalSoccerGame, oddsAvailable = true) {
   const flags: Array<{ code: string; severity: "info" | "warning" | "critical"; message: string }> = [];
 
   if (game.halftimeHomeScore === null || game.halftimeAwayScore === null) {
@@ -44,6 +44,10 @@ export function getSoccerDataQualityFlags(game: ExternalSoccerGame) {
 
   if (game.minute === null) {
     flags.push({ code: "MISSING_LIVE_MINUTE", severity: "warning", message: "Live minute missing for H3 evaluation." });
+  }
+
+  if (!oddsAvailable) {
+    flags.push({ code: "ODDS_NOT_AVAILABLE_FOR_PLAN", severity: "warning", message: "API-Football league coverage reports odds unavailable for the accessible season on the current plan." });
   }
 
   return flags;

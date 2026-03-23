@@ -93,10 +93,10 @@ async function insertStateSnapshot(admin: ReturnType<typeof createAdminClient>, 
   });
 }
 
-async function replaceDataQualityFlags(admin: ReturnType<typeof createAdminClient>, userId: string, gameId: string, game: ExternalSoccerGame) {
+async function replaceDataQualityFlags(admin: ReturnType<typeof createAdminClient>, userId: string, gameId: string, game: ExternalSoccerGame, oddsAvailable = true) {
   await admin.from("soccer_data_quality_flags").delete().eq("user_id", userId).eq("game_id", gameId);
 
-  const flags = getSoccerDataQualityFlags(game);
+  const flags = getSoccerDataQualityFlags(game, oddsAvailable);
   if (flags.length === 0) {
     return;
   }
@@ -235,7 +235,10 @@ export async function runSoccerProviderIngestForUser(settings: SoccerUserSetting
       const gameId = await upsertSoccerGame(admin, game);
       gamesCreated += 1;
       await insertStateSnapshot(admin, settings.user_id, gameId, game);
-      await replaceDataQualityFlags(admin, settings.user_id, gameId, game);
+      const leagueMeta = "getLeagueMeta" in provider
+        ? await (provider as typeof provider & { getLeagueMeta?: (leagueSlug: string) => Promise<{ oddsAvailable: boolean } | null> }).getLeagueMeta?.(String(game.leagueSlug))
+        : null;
+      await replaceDataQualityFlags(admin, settings.user_id, gameId, game, leagueMeta?.oddsAvailable ?? true);
       watchlistsCreated += await ensureWatchlistRows(admin, settings.user_id, gameId, game);
       oddsCreated += await insertOddsSnapshots(admin, settings, gameId, game);
 
