@@ -32,7 +32,7 @@ export function AuthPanel({ redirectTo }: { redirectTo: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="sign-in-password">Password</Label>
-              <Input id="sign-in-password" name="password" type="password" required placeholder="••••••••" />
+              <Input id="sign-in-password" name="password" type="password" required placeholder="Enter your password" />
             </div>
             {signInState.error ? <p className="text-sm text-rose-300">{signInState.error}</p> : null}
             <Button className="w-full" disabled={signInPending}>Sign in</Button>

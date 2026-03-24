@@ -11,8 +11,13 @@ async function handleRequest(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await runScheduledTriggerCheck();
-  return NextResponse.json(payload);
+  try {
+    const payload = await runScheduledTriggerCheck();
+    return NextResponse.json(payload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown hockey scheduler error";
+    return NextResponse.json({ job: "check-hockey-triggers", ok: false, error: message }, { status: 200 });
+  }
 }
 
 export async function GET(request: Request) {

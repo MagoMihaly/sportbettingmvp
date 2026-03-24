@@ -11,8 +11,13 @@ async function handleRequest(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await runScheduledOddsSync();
-  return NextResponse.json(payload);
+  try {
+    const payload = await runScheduledOddsSync();
+    return NextResponse.json(payload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown hockey odds sync error";
+    return NextResponse.json({ job: "capture-odds-snapshots", ok: false, error: message }, { status: 200 });
+  }
 }
 
 export async function GET(request: Request) {

@@ -30,10 +30,10 @@ export default async function LoginPage({
             <AppLogo />
             <div>
               <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">Member Access</div>
-              <h1 className="mt-3 text-4xl font-semibold text-white">Secure research workspace for hockey signal tracking.</h1>
+              <h1 className="mt-3 text-4xl font-semibold text-white">Secure research workspace for hockey, soccer and MLB signals.</h1>
             </div>
             <p className="max-w-md text-sm leading-7 text-slate-300">
-              Sign in to manage signals, review triggered states, adjust league watchlists and prepare the project for live data integrations.
+              Sign in to manage sport-specific signals, review triggered states, adjust settings and keep the live alert pipeline under control from one member area.
             </p>
           </div>
         </div>

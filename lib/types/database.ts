@@ -352,3 +352,124 @@ export type SoccerDataQualityFlagRecord = {
   message: string;
   payload: Record<string, unknown> | null;
 };
+
+export type MlbUserSettings = {
+  user_id: string;
+  selected_systems: string[];
+  notifications_enabled: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  timezone: string;
+  preferred_market_key: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type MlbGameRecord = {
+  id: string;
+  created_at: string;
+  provider: string;
+  external_game_id: string;
+  league_name: string;
+  status: "scheduled" | "live" | "finished";
+  start_time: string;
+  home_team: string;
+  away_team: string;
+  home_score: number;
+  away_score: number;
+  inning: number | null;
+  half_inning: "top" | "bottom" | null;
+  home_hits: number | null;
+  away_hits: number | null;
+  home_errors: number | null;
+  away_errors: number | null;
+  raw_payload: Record<string, unknown> | null;
+  last_synced_at: string;
+};
+
+export type MlbWatchlistRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  game_id: string;
+  market_key: string;
+  rule_type: string;
+  status: string;
+  notes: string | null;
+};
+
+export type MlbStateSnapshotRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  game_id: string;
+  captured_at: string;
+  inning: number | null;
+  half_inning: "top" | "bottom" | null;
+  home_score: number;
+  away_score: number;
+  home_hits: number | null;
+  away_hits: number | null;
+  payload: Record<string, unknown> | null;
+};
+
+export type MlbOddsSnapshotRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  game_id: string;
+  signal_key: string | null;
+  market_key: string;
+  bookmaker: string;
+  decimal_odds: number;
+  suspended: boolean;
+  captured_at: string;
+  source: string;
+  payload: Record<string, unknown> | null;
+};
+
+export type MlbLiveSignalRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  game_id: string;
+  rule_type: string;
+  signal_key: string;
+  market_key: string;
+  inning: number | null;
+  home_score: number;
+  away_score: number;
+  trigger_condition_met: boolean;
+  triggered_at: string | null;
+  source_provider: string;
+  payload: Record<string, unknown> | null;
+};
+
+export type MlbAlertRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  mlb_live_signal_id: string | null;
+  alert_type: string;
+  channel: string;
+  title: string;
+  body: string;
+  status: AlertStatus;
+  fingerprint: string;
+  delivered_at: string | null;
+  payload: Record<string, unknown> | null;
+};
+
+export type MlbProviderSyncLogRecord = {
+  id: string;
+  created_at: string;
+  user_id: string | null;
+  provider: string;
+  sync_type: string;
+  status: IngestStatus;
+  records_processed: number;
+  records_created: number;
+  started_at: string;
+  finished_at: string | null;
+  message: string | null;
+};

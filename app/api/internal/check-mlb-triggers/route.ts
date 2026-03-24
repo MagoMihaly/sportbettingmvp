@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { captureSoccerOddsSnapshotsForAllUsers } from "@/lib/services/soccerLiveIngest";
+import { runMlbProviderIngestForAllUsers } from "@/lib/services/mlbLiveIngest";
 import { isSchedulerAuthorized } from "@/lib/services/schedulerAuth";
 
 export const runtime = "nodejs";
@@ -12,11 +12,11 @@ async function handleRequest(request: Request) {
   }
 
   try {
-    const payload = await captureSoccerOddsSnapshotsForAllUsers();
-    return NextResponse.json({ job: "capture-soccer-odds", ok: true, result: payload });
+    const payload = await runMlbProviderIngestForAllUsers();
+    return NextResponse.json({ job: "check-mlb-triggers", ok: true, result: payload });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown soccer odds sync error";
-    return NextResponse.json({ job: "capture-soccer-odds", ok: false, error: message }, { status: 200 });
+    const message = error instanceof Error ? error.message : "Unknown MLB scheduler error";
+    return NextResponse.json({ job: "check-mlb-triggers", ok: false, error: message }, { status: 200 });
   }
 }
 

@@ -11,8 +11,13 @@ async function handleRequest(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await runSoccerProviderIngestForAllUsers();
-  return NextResponse.json({ job: "check-soccer-triggers", ok: true, result: payload });
+  try {
+    const payload = await runSoccerProviderIngestForAllUsers();
+    return NextResponse.json({ job: "check-soccer-triggers", ok: true, result: payload });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown soccer scheduler error";
+    return NextResponse.json({ job: "check-soccer-triggers", ok: false, error: message }, { status: 200 });
+  }
 }
 
 export async function GET(request: Request) {

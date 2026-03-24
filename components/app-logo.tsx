@@ -7,8 +7,8 @@ export function AppLogo() {
         <div className="h-4 w-4 rounded-full bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.7)]" />
       </div>
       <div>
-        <div className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">EHSE</div>
-        <div className="text-sm text-slate-400">European Hockey Signal Engine</div>
+        <div className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Signal Ops</div>
+        <div className="text-sm text-slate-400">Multi-Sport Signal Platform</div>
       </div>
     </div>
   );

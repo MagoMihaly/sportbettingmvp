@@ -1,17 +1,40 @@
 "use client";
 
-import { Activity, Bell, ChartColumn, Home, Settings2, Trophy, UserCircle2 } from "lucide-react";
+import { Activity, Bell, ChartColumn, Home, Settings2, Trophy, UserCircle2, Waves, ShieldPlus } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { MobileSidebar } from "@/components/mobile-sidebar";
 import { SignOutButton } from "@/components/sign-out-button";
+import { supportedSports } from "@/lib/config/sports";
 
-export function MemberSidebar({ soccerEnabled = false }: { soccerEnabled?: boolean }) {
+const sportIconMap = {
+  hockey: Waves,
+  soccer: Trophy,
+  mlb: ShieldPlus,
+} as const;
+
+export function MemberSidebar({ soccerEnabled = false, mlbEnabled = true }: { soccerEnabled?: boolean; mlbEnabled?: boolean }) {
+  const enabledSports = supportedSports.filter((sport) => {
+    if (sport.key === "soccer") {
+      return soccerEnabled;
+    }
+
+    if (sport.key === "mlb") {
+      return mlbEnabled;
+    }
+
+    return true;
+  });
+
   const navItems = [
     { href: "/member", label: "Dashboard", icon: Home },
-    { href: "/member/signals", label: "Signals", icon: ChartColumn },
+    ...enabledSports.map((sport) => ({
+      href: sport.href,
+      label: sport.label,
+      icon: sportIconMap[sport.key],
+    })),
     { href: "/member/engine", label: "Engine", icon: Activity },
-    ...(soccerEnabled ? [{ href: "/member/soccer", label: "Soccer", icon: Trophy }] : []),
+    { href: "/member/signals", label: "Hockey signals", icon: ChartColumn },
     { href: "/member/leagues", label: "Leagues", icon: Settings2 },
     { href: "/member/notifications", label: "Notifications", icon: Bell },
     { href: "/member/account", label: "Account", icon: UserCircle2 },
