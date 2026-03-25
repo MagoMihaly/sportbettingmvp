@@ -90,6 +90,7 @@ function revalidateEnginePaths() {
   revalidatePath("/member/soccer");
   revalidatePath("/member/mlb");
   revalidatePath("/member/signals");
+  revalidatePath("/member/hockey/signals");
   revalidatePath("/member/soccer/signals");
   revalidatePath("/member/mlb/signals");
 }

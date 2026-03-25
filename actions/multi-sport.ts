@@ -40,6 +40,7 @@ export async function toggleHockeyNotificationsAction(formData: FormData) {
   revalidatePath("/member");
   revalidatePath("/member/hockey");
   revalidatePath("/member/notifications");
+  revalidatePath("/member/hockey/notifications");
 }
 
 export async function toggleSoccerNotificationsAction(formData: FormData) {

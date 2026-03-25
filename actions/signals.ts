@@ -67,6 +67,7 @@ export async function createSignalAction(_prevState: SignalActionState, formData
 
   revalidatePath("/member");
   revalidatePath("/member/signals");
+  revalidatePath("/member/hockey/signals");
   return {
     error: "",
     success: triggerConditionMet

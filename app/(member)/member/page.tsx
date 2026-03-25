@@ -64,7 +64,7 @@ export default async function MemberDashboardPage() {
             { label: "Provider", value: hockey.provider.displayName },
           ]}
           href="/member/hockey"
-          settingsHref="/member/leagues"
+          settingsHref="/member/hockey/leagues"
           toggleAction={toggleHockeyNotificationsAction}
         />
         {soccerEnabled ? (
