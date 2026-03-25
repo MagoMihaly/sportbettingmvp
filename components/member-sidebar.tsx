@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Bell, ChartColumn, Home, Settings2, Trophy, UserCircle2, Waves, ShieldPlus } from "lucide-react";
+import { Activity, Bell, ChartColumn, Home, Settings2, ShieldCheck, Trophy, UserCircle2, Waves, ShieldPlus } from "lucide-react";
 import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { MobileSidebar } from "@/components/mobile-sidebar";
@@ -34,6 +34,7 @@ export function MemberSidebar({ soccerEnabled = false, mlbEnabled = true }: { so
       icon: sportIconMap[sport.key],
     })),
     { href: "/member/engine", label: "Engine", icon: Activity },
+    { href: "/member/diagnostics", label: "Diagnostics", icon: ShieldCheck },
     { href: "/member/signals", label: "Hockey signals", icon: ChartColumn },
     { href: "/member/leagues", label: "Leagues", icon: Settings2 },
     { href: "/member/notifications", label: "Notifications", icon: Bell },
