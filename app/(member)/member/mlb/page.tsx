@@ -53,7 +53,7 @@ export default async function MlbDashboardPage() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Qualified signals: {stats.qualifiedPregameSignals}</div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Notifications: {settings?.notifications_enabled ? "Enabled" : "Muted"}</div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              MLB now runs as a pre-game-only series evaluator. It reuses cached matchup history and skips the retired live watchlist and odds capture layer.
+              MLB now runs as a scheduled-game series evaluator. It reuses cached matchup history and keeps the workflow focused on pre-game decisions.
             </div>
             {latestError ? (
               <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">

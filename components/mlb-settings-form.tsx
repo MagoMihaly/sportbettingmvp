@@ -11,7 +11,7 @@ export function MlbSettingsForm({ settings }: { settings: MlbUserSettings | null
     <Card>
       <CardHeader>
         <CardDescription>MLB signal controls</CardDescription>
-        <CardTitle>MLB watchlist and alerts</CardTitle>
+        <CardTitle>MLB pre-game strategies and alerts</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={updateMlbSettingsAction} className="space-y-6">
@@ -42,7 +42,7 @@ export function MlbSettingsForm({ settings }: { settings: MlbUserSettings | null
               <input name="timezone" defaultValue={settings?.timezone ?? "Europe/Budapest"} className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white" />
             </label>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-              MLB is now pre-game only in this workspace. Live inning-state systems and their market selector were removed, so the settings focus on series strategies and alert delivery only.
+              MLB in this workspace focuses on scheduled-game series setups. Settings stay limited to strategy selection and alert delivery so the module remains clean and easy to tune.
             </div>
           </div>
 
@@ -62,7 +62,7 @@ export function MlbSettingsForm({ settings }: { settings: MlbUserSettings | null
           </div>
 
           <p className="text-sm leading-6 text-slate-400">
-            MLB now runs as a dedicated pre-game module. The series-based strategies stay separate, backtestable and easier to tune without carrying any unused live-system noise.
+            The MLB module is intentionally pre-game only. These series-based strategies stay separate, backtestable and easier to iterate without extra runtime noise.
           </p>
           <Button>Save MLB settings</Button>
         </form>

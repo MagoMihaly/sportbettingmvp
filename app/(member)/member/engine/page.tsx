@@ -29,6 +29,7 @@ export default async function EnginePage() {
           ...sport,
           provider: hockeyDashboard.provider.displayName,
           automatic: hockeyDashboard.provider.supportsAutomaticTriggers,
+          automaticLabel: hockeyDashboard.provider.supportsAutomaticTriggers ? "Automatic triggers" : "Manual verification",
           tracked: hockeyDashboard.stats.trackedMatches,
           alerts: hockeyDashboard.stats.alertsCount,
           route: sport.href,
@@ -40,6 +41,7 @@ export default async function EnginePage() {
           ...sport,
           provider: soccer.provider.displayName,
           automatic: soccer.provider.supportsAutomaticTriggers,
+          automaticLabel: soccer.provider.supportsAutomaticTriggers ? "Automatic triggers" : "Manual verification",
           tracked: soccer.stats.trackedGames,
           alerts: soccer.stats.alertsCount,
           route: sport.href,
@@ -50,6 +52,7 @@ export default async function EnginePage() {
         ...sport,
         provider: mlb.provider.displayName,
         automatic: mlb.provider.supportsAutomaticTriggers,
+        automaticLabel: mlb.provider.supportsAutomaticTriggers ? "Automated evaluations" : "Manual verification",
         tracked: mlb.stats.trackedGames,
         alerts: mlb.stats.alertsCount,
         route: sport.href,
@@ -76,9 +79,7 @@ export default async function EnginePage() {
             <CardContent className="space-y-4 text-sm text-slate-300">
               <div className="flex flex-wrap gap-2">
                 <Badge variant={sport.badgeVariant}>{sport.defaultMarketLabel}</Badge>
-                <Badge variant={sport.automatic ? "success" : "warning"}>
-                  {sport.automatic ? "Automatic triggers" : "Manual verification"}
-                </Badge>
+                <Badge variant={sport.automatic ? "success" : "warning"}>{sport.automaticLabel}</Badge>
               </div>
               <div>Tracked rows: {sport.tracked}</div>
               <div>Alerts: {sport.alerts}</div>
@@ -108,10 +109,10 @@ export default async function EnginePage() {
               Separate protected endpoints keep hockey, soccer and MLB isolated during scheduled runs.
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              Shared polling-stage helpers reduce odds calls by focusing on watchlist and trigger-zone games only.
+              Shared polling-stage helpers reduce expensive follow-up work by focusing only on shortlisted games or series candidates.
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              MLB stays mock-safe until a real provider is justified, so we can validate the multi-sport operating model without forcing new API cost.
+              MLB stays mock-safe until a real provider is justified, so we can validate the multi-sport operating model without forcing unnecessary API cost.
             </div>
           </CardContent>
         </Card>

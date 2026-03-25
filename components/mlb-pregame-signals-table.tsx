@@ -39,7 +39,7 @@ export function MlbPregameSignalsTable({
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Series-based MLB systems</CardDescription>
+        <CardDescription>Series-based MLB strategies</CardDescription>
         <CardTitle>Pre-game strategy output</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -60,7 +60,7 @@ export function MlbPregameSignalsTable({
                   <div>
                     <div className="font-medium text-white">{game?.home_team} vs {game?.away_team}</div>
                     <div className="mt-1 text-sm text-slate-400">
-                      MLB pre-game • {formatDateTime(game?.start_time ?? signal.evaluated_at)}
+                      MLB pre-game | {formatDateTime(game?.start_time ?? signal.evaluated_at)}
                     </div>
                   </div>
                   <Badge variant={statusVariantMap[signal.evaluation_status]}>
