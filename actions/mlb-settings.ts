@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { mlbSystems } from "@/lib/config/mlbSystems";
+import { mlbPregameStrategies } from "@/lib/config/mlbPregameStrategies";
 
-function formDataToSystems(formData: FormData) {
+function formDataToPregameStrategies(formData: FormData) {
   return formData
-    .getAll("selected_systems")
+    .getAll("selected_pregame_strategies")
     .map((value) => String(value))
     .filter(Boolean);
 }
@@ -28,15 +28,15 @@ export async function updateMlbSettingsAction(formData: FormData) {
     return;
   }
 
-  const selectedSystems = formDataToSystems(formData);
+  const selectedPregameStrategies = formDataToPregameStrategies(formData);
   const payload = {
     user_id: user.id,
-    selected_systems: selectedSystems.length > 0 ? selectedSystems : mlbSystems.map((system) => system.key),
+    selected_pregame_strategies:
+      selectedPregameStrategies.length > 0 ? selectedPregameStrategies : mlbPregameStrategies.map((strategy) => strategy.key),
     notifications_enabled: formData.get("notifications_enabled") === "on",
     email_notifications: formData.get("email_notifications") === "on",
     push_notifications: formData.get("push_notifications") === "on",
     timezone: String(formData.get("timezone") ?? "Europe/Budapest"),
-    preferred_market_key: String(formData.get("preferred_market_key") ?? "MLB_F5_SCORELESS"),
   };
 
   try {

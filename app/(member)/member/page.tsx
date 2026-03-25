@@ -22,7 +22,7 @@ export default async function MemberDashboardPage() {
   const totalTriggeredSignals =
     hockey.stats.triggeredSignals +
     (soccerEnabled ? soccer.stats.triggeredSignals : 0) +
-    (mlbEnabled ? mlb.stats.triggeredSignals : 0);
+    (mlbEnabled ? mlb.stats.qualifiedPregameSignals : 0);
   const totalAlerts =
     hockey.stats.alertsCount +
     (soccerEnabled ? soccer.stats.alertsCount : 0) +
@@ -44,10 +44,10 @@ export default async function MemberDashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card><CardHeader><CardDescription>Triggered signals</CardDescription><CardTitle>{totalTriggeredSignals}</CardTitle></CardHeader></Card>
+        <Card><CardHeader><CardDescription>Qualified signal events</CardDescription><CardTitle>{totalTriggeredSignals}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Total alerts</CardDescription><CardTitle>{totalAlerts}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Hockey leagues</CardDescription><CardTitle>{hockey.stats.activeLeagues}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Soccer + MLB systems</CardDescription><CardTitle>{(soccerEnabled ? soccer.stats.activeLeagues : 0) + (mlbEnabled ? mlb.stats.activeSystems : 0)}</CardTitle></CardHeader></Card>
+        <Card><CardHeader><CardDescription>Soccer + MLB strategy scope</CardDescription><CardTitle>{(soccerEnabled ? soccer.stats.activeLeagues : 0) + (mlbEnabled ? mlb.stats.activePregameStrategies : 0)}</CardTitle></CardHeader></Card>
       </div>
 
       <div className={`grid gap-6 ${soccerEnabled && mlbEnabled ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
@@ -88,14 +88,14 @@ export default async function MemberDashboardPage() {
         {mlbEnabled ? (
           <SportOverviewCard
             label="MLB"
-            description="MLB is now a first-class module in mock-safe mode so we can validate multi-sport UX and signal handling without committing to another paid feed yet."
+            description="MLB now runs as a pre-game series module, so the signal flow stays cheap, testable and focused on scheduled-game setups."
             accentVariant="warning"
-            statusLabel="Inning-state signal systems"
+            statusLabel="Pre-game series strategies"
             notificationsEnabled={mlb.settings?.notifications_enabled ?? true}
             summaryItems={[
-              { label: "Triggered", value: mlb.stats.triggeredSignals },
-              { label: "Systems", value: mlb.stats.activeSystems },
-              { label: "Watchlist", value: mlb.stats.watchlistRows },
+              { label: "Qualified", value: mlb.stats.qualifiedPregameSignals },
+              { label: "Strategies", value: mlb.stats.activePregameStrategies },
+              { label: "Evaluated", value: mlb.stats.pregameSignals },
               { label: "Provider", value: mlb.provider.displayName },
             ]}
             href="/member/mlb"
@@ -114,13 +114,13 @@ export default async function MemberDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-slate-300">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              Stage 1: fixture sync only for selected sports and selected leagues or systems.
+              Stage 1: fixture sync only for selected sports and the exact leagues or strategies we care about.
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              Stage 2: watchlist rows are created server-side so only relevant live games move into higher-frequency processing.
+              Stage 2: the platform builds a smaller shortlist server-side so only relevant games or series spots move into deeper processing.
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              Stage 3: odds capture is reserved for watchlist and trigger-zone games instead of every synced game.
+              Stage 3: higher-cost follow-up work, including odds capture where a sport needs it, is reserved for the shortlisted set instead of every synced game.
             </div>
             <Button asChild>
               <Link href="/member/engine">Open engine workspace</Link>

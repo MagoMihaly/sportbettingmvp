@@ -1,12 +1,38 @@
 import { createMlbProvider } from "@/lib/providers/mlbApi";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv, isMlbModuleEnabled } from "@/lib/supabase/env";
-import { persistMlbTriggeredAlerts } from "@/lib/services/mlbAlerts";
-import { getTriggeredMlbSignals, evaluateMlbGameSignals } from "@/lib/services/mlbSignalEngine";
-import type { MlbGameRecord, MlbUserSettings } from "@/lib/types/database";
+import { runMlbPregameEvaluationForUser } from "@/lib/services/mlbPregameEngine";
+import type { MlbUserSettings } from "@/lib/types/database";
 import type { ExternalMlbGame } from "@/lib/types/mlb";
 
 const provider = createMlbProvider();
+
+type MlbIngestResult = {
+  disabled: boolean;
+  provider: string;
+  gamesCreated: number;
+  watchlistsCreated: number;
+  oddsCreated: number;
+  liveSignalsCreated: number;
+  pregameSignalsEvaluated: number;
+  qualifiedPregameSignals: number;
+  alertsCreated: number;
+  error: string | null;
+};
+
+type MlbIngestAllUsersResult = {
+  disabled: boolean;
+  provider: string;
+  runsCreated: number;
+  gamesCreated: number;
+  watchlistsCreated: number;
+  oddsCreated: number;
+  liveSignalsCreated: number;
+  pregameSignalsEvaluated: number;
+  qualifiedPregameSignals: number;
+  alertsCreated: number;
+  errors: string[];
+};
 
 export function getActiveMlbProviderSummary() {
   return {
@@ -17,10 +43,12 @@ export function getActiveMlbProviderSummary() {
 }
 
 async function getTrackedGames() {
-  const [scheduledGames, liveGames] = await Promise.all([provider.getScheduledGames(), provider.getLiveGames()]);
+  const [scheduledGames, contextGames] = await Promise.all([provider.getScheduledGames(), provider.getLiveGames()]);
   const deduped = new Map<string, ExternalMlbGame>();
 
-  for (const game of [...liveGames, ...scheduledGames]) {
+  // MLB now runs pre-game only, but we still keep short series context rows in the
+  // ingest window so the evaluator can score Game 2 / Game 3 setups from cached data.
+  for (const game of [...contextGames, ...scheduledGames]) {
     deduped.set(`${game.source}:${game.externalGameId}`, game);
   }
 
@@ -77,76 +105,6 @@ async function insertStateSnapshot(admin: ReturnType<typeof createAdminClient>, 
   });
 }
 
-async function ensureWatchlistRows(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  gameId: string,
-  game: ExternalMlbGame,
-  selectedSystems: string[],
-) {
-  const candidates = evaluateMlbGameSignals(game).filter((candidate) => selectedSystems.includes(candidate.marketKey));
-  let created = 0;
-
-  for (const candidate of candidates) {
-    const { data: existing } = await admin
-      .from("mlb_watchlists")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("game_id", gameId)
-      .eq("market_key", candidate.marketKey)
-      .maybeSingle();
-
-    if (existing) {
-      continue;
-    }
-
-    const { error } = await admin.from("mlb_watchlists").insert({
-      user_id: userId,
-      game_id: gameId,
-      market_key: candidate.marketKey,
-      rule_type: candidate.ruleType,
-      status: candidate.triggerConditionMet ? "triggered" : "watching",
-      notes: `Generated from ${game.leagueName}`,
-    });
-
-    if (!error) {
-      created += 1;
-    }
-  }
-
-  return created;
-}
-
-async function insertOddsSnapshots(admin: ReturnType<typeof createAdminClient>, settings: MlbUserSettings, gameId: string, game: ExternalMlbGame) {
-  const marketData = await provider.getMarketData(game.externalGameId, settings.preferred_market_key as never);
-  let created = 0;
-
-  for (const market of marketData) {
-    if (market.odds === null || !market.bookmaker) {
-      continue;
-    }
-
-    const { error } = await admin.from("mlb_odds_snapshots").insert({
-      user_id: settings.user_id,
-      game_id: gameId,
-      signal_key: `${game.externalGameId}:${market.marketKey}`,
-      market_key: market.marketKey,
-      bookmaker: market.bookmaker,
-      decimal_odds: Number(market.odds.toFixed(2)),
-      suspended: market.suspended,
-      captured_at: new Date().toISOString(),
-      source: market.source,
-      payload: market.payload,
-    });
-
-    if (!error) {
-      created += 1;
-    }
-  }
-
-  return created;
-}
-
 async function writeSyncLog(params: {
   userId: string | null;
   syncType: string;
@@ -169,15 +127,37 @@ async function writeSyncLog(params: {
   });
 }
 
-function disabledPayload() {
-  return { disabled: true, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, error: null as string | null };
+function disabledPayload(): MlbIngestResult {
+  return {
+    disabled: true,
+    provider: provider.displayName,
+    gamesCreated: 0,
+    watchlistsCreated: 0,
+    oddsCreated: 0,
+    liveSignalsCreated: 0,
+    pregameSignalsEvaluated: 0,
+    qualifiedPregameSignals: 0,
+    alertsCreated: 0,
+    error: null as string | null,
+  };
 }
 
-function emptyPayload() {
-  return { disabled: false, provider: provider.displayName, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, error: null as string | null };
+function emptyPayload(): MlbIngestResult {
+  return {
+    disabled: false,
+    provider: provider.displayName,
+    gamesCreated: 0,
+    watchlistsCreated: 0,
+    oddsCreated: 0,
+    liveSignalsCreated: 0,
+    pregameSignalsEvaluated: 0,
+    qualifiedPregameSignals: 0,
+    alertsCreated: 0,
+    error: null as string | null,
+  };
 }
 
-export async function runMlbProviderIngestForUser(settings: MlbUserSettings) {
+export async function runMlbProviderIngestForUser(settings: MlbUserSettings): Promise<MlbIngestResult> {
   if (!isMlbModuleEnabled()) {
     return disabledPayload();
   }
@@ -191,39 +171,38 @@ export async function runMlbProviderIngestForUser(settings: MlbUserSettings) {
   try {
     const games = await getTrackedGames();
     let gamesCreated = 0;
-    let watchlistsCreated = 0;
-    let oddsCreated = 0;
-    let liveSignalsCreated = 0;
     let alertsCreated = 0;
 
     for (const game of games) {
       const gameId = await upsertGame(admin, game);
       gamesCreated += 1;
       await insertStateSnapshot(admin, settings.user_id, gameId, game);
-      watchlistsCreated += await ensureWatchlistRows(admin, settings.user_id, gameId, game, settings.selected_systems);
-      oddsCreated += await insertOddsSnapshots(admin, settings, gameId, game);
-
-      const created = await persistMlbTriggeredAlerts({
-        userId: settings.user_id,
-        gameId,
-        game,
-        settings,
-        evaluatedSignals: getTriggeredMlbSignals(game).filter((signal) => settings.selected_systems.includes(signal.marketKey)),
-      });
-      liveSignalsCreated += created.liveSignalsCreated;
-      alertsCreated += created.alertsCreated;
     }
+
+    const pregameEvaluation = await runMlbPregameEvaluationForUser({ settings });
+    alertsCreated += pregameEvaluation.alertsCreated;
 
     await writeSyncLog({
       userId: settings.user_id,
       syncType: "fixture_sync",
       status: "synced",
       recordsProcessed: games.length,
-      recordsCreated: gamesCreated + alertsCreated,
+      recordsCreated: gamesCreated + alertsCreated + pregameEvaluation.qualifiedCount,
       message: `${provider.displayName} MLB ingest completed.`,
     });
 
-    return { disabled: false, provider: provider.displayName, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated, error: null as string | null };
+    return {
+      disabled: false,
+      provider: provider.displayName,
+      gamesCreated,
+      watchlistsCreated: 0,
+      oddsCreated: 0,
+      liveSignalsCreated: 0,
+      pregameSignalsEvaluated: pregameEvaluation.evaluatedCount,
+      qualifiedPregameSignals: pregameEvaluation.qualifiedCount,
+      alertsCreated,
+      error: pregameEvaluation.error,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown MLB ingest error";
     await writeSyncLog({
@@ -238,13 +217,37 @@ export async function runMlbProviderIngestForUser(settings: MlbUserSettings) {
   }
 }
 
-export async function runMlbProviderIngestForAllUsers() {
+export async function runMlbProviderIngestForAllUsers(): Promise<MlbIngestAllUsersResult> {
   if (!isMlbModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, errors: [] as string[] };
+    return {
+      disabled: true,
+      provider: provider.displayName,
+      runsCreated: 0,
+      gamesCreated: 0,
+      watchlistsCreated: 0,
+      oddsCreated: 0,
+      liveSignalsCreated: 0,
+      pregameSignalsEvaluated: 0,
+      qualifiedPregameSignals: 0,
+      alertsCreated: 0,
+      errors: [] as string[],
+    };
   }
 
   if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, runsCreated: 0, gamesCreated: 0, watchlistsCreated: 0, oddsCreated: 0, liveSignalsCreated: 0, alertsCreated: 0, errors: [] as string[] };
+    return {
+      disabled: false,
+      provider: provider.displayName,
+      runsCreated: 0,
+      gamesCreated: 0,
+      watchlistsCreated: 0,
+      oddsCreated: 0,
+      liveSignalsCreated: 0,
+      pregameSignalsEvaluated: 0,
+      qualifiedPregameSignals: 0,
+      alertsCreated: 0,
+      errors: [] as string[],
+    };
   }
 
   const admin = createAdminClient();
@@ -255,9 +258,8 @@ export async function runMlbProviderIngestForAllUsers() {
 
   let runsCreated = 0;
   let gamesCreated = 0;
-  let watchlistsCreated = 0;
-  let oddsCreated = 0;
-  let liveSignalsCreated = 0;
+  let pregameSignalsEvaluated = 0;
+  let qualifiedPregameSignals = 0;
   let alertsCreated = 0;
   const errors: string[] = [];
 
@@ -265,159 +267,25 @@ export async function runMlbProviderIngestForAllUsers() {
     const result = await runMlbProviderIngestForUser(row);
     runsCreated += 1;
     gamesCreated += result.gamesCreated;
-    watchlistsCreated += result.watchlistsCreated;
-    oddsCreated += result.oddsCreated;
-    liveSignalsCreated += result.liveSignalsCreated;
+    pregameSignalsEvaluated += result.pregameSignalsEvaluated;
+    qualifiedPregameSignals += result.qualifiedPregameSignals;
     alertsCreated += result.alertsCreated;
     if (result.error) {
       errors.push(result.error);
     }
   }
 
-  return { disabled: false, provider: provider.displayName, runsCreated, gamesCreated, watchlistsCreated, oddsCreated, liveSignalsCreated, alertsCreated, errors };
-}
-
-export async function captureMlbOddsSnapshotsForAllUsers() {
-  if (!isMlbModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0, errors: [] as string[] };
-  }
-
-  if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, runsCreated: 0, snapshotsCreated: 0, errors: [] as string[] };
-  }
-
-  const admin = createAdminClient();
-  const { data: settingsRows, error } = await admin.from("mlb_user_settings").select("*");
-  if (error || !settingsRows) {
-    throw new Error(error?.message ?? "Failed to load MLB user settings.");
-  }
-
-  let runsCreated = 0;
-  let snapshotsCreated = 0;
-  const errors: string[] = [];
-
-  for (const settings of settingsRows as MlbUserSettings[]) {
-    try {
-      const { data: games } = await admin
-        .from("mlb_games")
-        .select("*")
-        .order("last_synced_at", { ascending: false })
-        .limit(10);
-
-      for (const game of (games ?? []) as MlbGameRecord[]) {
-        const marketData = await provider.getMarketData(game.external_game_id, settings.preferred_market_key as never);
-        for (const market of marketData) {
-          if (market.odds === null || !market.bookmaker) {
-            continue;
-          }
-
-          const { error: insertError } = await admin.from("mlb_odds_snapshots").insert({
-            user_id: settings.user_id,
-            game_id: game.id,
-            signal_key: `${game.external_game_id}:${market.marketKey}`,
-            market_key: market.marketKey,
-            bookmaker: market.bookmaker,
-            decimal_odds: Number(market.odds.toFixed(2)),
-            suspended: market.suspended,
-            captured_at: new Date().toISOString(),
-            source: market.source,
-            payload: market.payload,
-          });
-
-          if (!insertError) {
-            snapshotsCreated += 1;
-          }
-        }
-      }
-    } catch (runError) {
-      const message = runError instanceof Error ? runError.message : "Unknown MLB odds sync error";
-      errors.push(message);
-      await writeSyncLog({
-        userId: settings.user_id,
-        syncType: "odds_sync",
-        status: "error",
-        recordsProcessed: 0,
-        recordsCreated: 0,
-        message,
-      });
-    }
-
-    runsCreated += 1;
-  }
-
-  if (errors.length === 0) {
-    await writeSyncLog({
-      userId: null,
-      syncType: "odds_sync",
-      status: "synced",
-      recordsProcessed: runsCreated,
-      recordsCreated: snapshotsCreated,
-      message: `${provider.displayName} MLB odds sync completed.`,
-    });
-  }
-
-  return { disabled: false, provider: provider.displayName, runsCreated, snapshotsCreated, errors };
-}
-
-export async function captureMlbOddsSnapshotsForUser(settings: MlbUserSettings, games: MlbGameRecord[]) {
-  if (!isMlbModuleEnabled()) {
-    return { disabled: true, provider: provider.displayName, snapshotsCreated: 0, error: null as string | null };
-  }
-
-  if (!hasSupabaseEnv()) {
-    return { disabled: false, provider: provider.displayName, snapshotsCreated: 0, error: null as string | null };
-  }
-
-  const admin = createAdminClient();
-  let snapshotsCreated = 0;
-
-  try {
-    for (const game of games) {
-      const marketData = await provider.getMarketData(game.external_game_id, settings.preferred_market_key as never);
-      for (const market of marketData) {
-        if (market.odds === null || !market.bookmaker) {
-          continue;
-        }
-
-        const { error } = await admin.from("mlb_odds_snapshots").insert({
-          user_id: settings.user_id,
-          game_id: game.id,
-          signal_key: `${game.external_game_id}:${market.marketKey}`,
-          market_key: market.marketKey,
-          bookmaker: market.bookmaker,
-          decimal_odds: Number(market.odds.toFixed(2)),
-          suspended: market.suspended,
-          captured_at: new Date().toISOString(),
-          source: market.source,
-          payload: market.payload,
-        });
-
-        if (!error) {
-          snapshotsCreated += 1;
-        }
-      }
-    }
-
-    await writeSyncLog({
-      userId: settings.user_id,
-      syncType: "odds_sync",
-      status: "synced",
-      recordsProcessed: games.length,
-      recordsCreated: snapshotsCreated,
-      message: `${provider.displayName} MLB odds sync completed.`,
-    });
-
-    return { disabled: false, provider: provider.displayName, snapshotsCreated, error: null as string | null };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown MLB odds sync error";
-    await writeSyncLog({
-      userId: settings.user_id,
-      syncType: "odds_sync",
-      status: "error",
-      recordsProcessed: 0,
-      recordsCreated: 0,
-      message,
-    });
-    return { disabled: false, provider: provider.displayName, snapshotsCreated, error: message };
-  }
+  return {
+    disabled: false,
+    provider: provider.displayName,
+    runsCreated,
+    gamesCreated,
+    watchlistsCreated: 0,
+    oddsCreated: 0,
+    liveSignalsCreated: 0,
+    pregameSignalsEvaluated,
+    qualifiedPregameSignals,
+    alertsCreated,
+    errors,
+  };
 }

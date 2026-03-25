@@ -1,6 +1,6 @@
 import { ApiBaseballMlbProvider } from "@/lib/providers/apiBaseballMlb";
-import { mlbSystems } from "@/lib/config/mlbSystems";
-import type { ExternalMlbGame, ExternalMlbMarketData, MlbApiProvider } from "@/lib/types/mlb";
+import { mockMlbGames } from "@/lib/mock/mlb";
+import type { ExternalMlbGame, MlbApiProvider } from "@/lib/types/mlb";
 
 class MockMlbProvider implements MlbApiProvider {
   readonly providerKey = "mock-mlb";
@@ -8,64 +8,24 @@ class MockMlbProvider implements MlbApiProvider {
   readonly supportsAutomaticTriggers = true;
 
   private buildGames() {
-    const now = Date.now();
-
-    return [
-      {
-        externalGameId: "mlb-1001",
-        leagueName: "MLB",
-        startTime: new Date(now - 150 * 60 * 1000).toISOString(),
-        status: "live",
-        homeTeam: "Yankees",
-        awayTeam: "Blue Jays",
-        homeScore: 0,
-        awayScore: 0,
-        inning: 5,
-        halfInning: "bottom",
-        homeHits: 3,
-        awayHits: 2,
-        homeErrors: 0,
-        awayErrors: 0,
-        source: "mock-mlb",
-        rawPayload: { demo: true, game: 1 },
-      },
-      {
-        externalGameId: "mlb-1002",
-        leagueName: "MLB",
-        startTime: new Date(now - 185 * 60 * 1000).toISOString(),
-        status: "live",
-        homeTeam: "Dodgers",
-        awayTeam: "Padres",
-        homeScore: 1,
-        awayScore: 0,
-        inning: 7,
-        halfInning: "top",
-        homeHits: 5,
-        awayHits: 4,
-        homeErrors: 0,
-        awayErrors: 1,
-        source: "mock-mlb",
-        rawPayload: { demo: true, game: 2 },
-      },
-      {
-        externalGameId: "mlb-1003",
-        leagueName: "MLB",
-        startTime: new Date(now + 95 * 60 * 1000).toISOString(),
-        status: "scheduled",
-        homeTeam: "Braves",
-        awayTeam: "Phillies",
-        homeScore: 0,
-        awayScore: 0,
-        inning: null,
-        halfInning: null,
-        homeHits: null,
-        awayHits: null,
-        homeErrors: null,
-        awayErrors: null,
-        source: "mock-mlb",
-        rawPayload: { demo: true, game: 3 },
-      },
-    ] satisfies ExternalMlbGame[];
+    return mockMlbGames.map((game) => ({
+      externalGameId: game.external_game_id,
+      leagueName: game.league_name,
+      startTime: game.start_time,
+      status: game.status,
+      homeTeam: game.home_team,
+      awayTeam: game.away_team,
+      homeScore: game.home_score,
+      awayScore: game.away_score,
+      inning: game.inning,
+      halfInning: game.half_inning,
+      homeHits: game.home_hits,
+      awayHits: game.away_hits,
+      homeErrors: game.home_errors,
+      awayErrors: game.away_errors,
+      source: "mock-mlb",
+      rawPayload: game.raw_payload ?? { demo: true },
+    })) satisfies ExternalMlbGame[];
   }
 
   async getScheduledGames() {
@@ -73,24 +33,11 @@ class MockMlbProvider implements MlbApiProvider {
   }
 
   async getLiveGames() {
-    return this.buildGames().filter((game) => game.status === "live");
+    return this.buildGames().filter((game) => game.status === "finished");
   }
 
   async getGameDetails(externalGameId: string) {
     return this.buildGames().find((game) => game.externalGameId === externalGameId) ?? null;
-  }
-
-  async getMarketData(externalGameId: string, marketKey: (typeof mlbSystems)[number]["key"]) {
-    return [
-      {
-        marketKey,
-        bookmaker: "FanDuel",
-        odds: marketKey === "MLB_F5_SCORELESS" ? 1.96 : 1.82,
-        suspended: false,
-        source: "mock-mlb",
-        payload: { externalGameId, marketKey },
-      },
-    ] satisfies ExternalMlbMarketData[];
   }
 }
 
@@ -104,4 +51,4 @@ export function createMlbProvider(): MlbApiProvider {
   return new MockMlbProvider();
 }
 
-export type { ExternalMlbGame, ExternalMlbMarketData, MlbApiProvider } from "@/lib/types/mlb";
+export type { ExternalMlbGame, MlbApiProvider } from "@/lib/types/mlb";

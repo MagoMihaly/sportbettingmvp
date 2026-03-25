@@ -1,9 +1,10 @@
 import { diagnosticsTests } from "@/lib/config/diagnostics";
 import { priorityLeagues } from "@/lib/config/leagues";
 import { defaultSoccerLeagueSlugs } from "@/lib/config/soccerLeagues";
+import { mockMlbGames, mockMlbOddsSnapshots } from "@/lib/mock/mlb";
 import { buildTriggeredSignalNotification, deliverAlertPlaceholder, getEnabledNotificationChannels } from "@/lib/services/notifications";
 import { getTriggeredSignals } from "@/lib/services/signalEngine";
-import { getTriggeredMlbSignals } from "@/lib/services/mlbSignalEngine";
+import { evaluateMlbPregameSignals } from "@/lib/services/mlbPregameEngine";
 import { getTriggeredSoccerSignals } from "@/lib/services/soccerSignalEngine";
 import { createMlbProvider } from "@/lib/providers/mlbApi";
 import { createHockeyProvider } from "@/lib/providers/hockeyApi";
@@ -27,7 +28,6 @@ import type { AlertRecord, SignalRecord } from "@/lib/types/database";
 import type { DiagnosticsCheckMode, DiagnosticsCheckResult, DiagnosticsTestId } from "@/lib/types/diagnostics";
 import type { ExternalHockeyGame } from "@/lib/types/provider";
 import type { ExternalSoccerGame } from "@/lib/types/soccer";
-import type { ExternalMlbGame } from "@/lib/types/mlb";
 
 const diagnosticsTestSet = new Set(diagnosticsTests.map((test) => test.id));
 
@@ -187,27 +187,6 @@ function buildSampleSoccerGame(): ExternalSoccerGame {
   };
 }
 
-function buildSampleMlbGame(): ExternalMlbGame {
-  return {
-    externalGameId: "diag-mlb-1",
-    leagueName: "MLB",
-    startTime: new Date().toISOString(),
-    status: "live",
-    homeTeam: "Diagnostics Yankees",
-    awayTeam: "Signals Sox",
-    homeScore: 0,
-    awayScore: 0,
-    inning: 7,
-    halfInning: "bottom",
-    homeHits: 3,
-    awayHits: 2,
-    homeErrors: 0,
-    awayErrors: 0,
-    source: "diagnostics",
-    rawPayload: { diagnostics: true },
-  };
-}
-
 async function runAuthSessionCheck() {
   const auth = await requireAuthenticatedUser();
   if (!auth.ok) {
@@ -347,19 +326,23 @@ async function runExternalProvidersCheck() {
 async function runSignalEngineCommunicationCheck() {
   const hockeyTriggered = getTriggeredSignals(buildSampleHockeyGame());
   const soccerTriggered = getTriggeredSoccerSignals(buildSampleSoccerGame());
-  const mlbTriggered = getTriggeredMlbSignals(buildSampleMlbGame());
+  const mlbTriggered = evaluateMlbPregameSignals({
+    games: mockMlbGames,
+    oddsSnapshots: mockMlbOddsSnapshots,
+    selectedStrategies: ["MLB_SERIES_G3_UNDERDOG", "MLB_FAVORITE_RECOVERY"],
+  }).filter((signal) => signal.evaluationStatus === "qualified");
 
   if (hockeyTriggered.length === 0 || soccerTriggered.length === 0 || mlbTriggered.length === 0) {
     return buildFailure(
       "signal-engine-communication",
       "Invalid Response",
-      `Expected sample triggers were not produced. Hockey=${hockeyTriggered.length}, Soccer=${soccerTriggered.length}, MLB=${mlbTriggered.length}.`,
+      `Expected sample triggers were not produced. Hockey=${hockeyTriggered.length}, Soccer=${soccerTriggered.length}, MLB pre-game=${mlbTriggered.length}.`,
     );
   }
 
   return buildSuccess(
     "signal-engine-communication",
-    `Signal evaluators produced sample triggers successfully. Hockey=${hockeyTriggered.length}, Soccer=${soccerTriggered.length}, MLB=${mlbTriggered.length}.`,
+    `Signal evaluators produced sample triggers successfully. Hockey=${hockeyTriggered.length}, Soccer=${soccerTriggered.length}, MLB pre-game=${mlbTriggered.length}.`,
   );
 }
 

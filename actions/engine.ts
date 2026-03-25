@@ -4,10 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { captureOddsSnapshotsForUser, runProviderIngestForUser } from "@/lib/services/liveIngest";
-import { captureMlbOddsSnapshotsForUser, runMlbProviderIngestForUser } from "@/lib/services/mlbLiveIngest";
+import { runMlbProviderIngestForUser } from "@/lib/services/mlbLiveIngest";
 import { captureSoccerOddsSnapshotsForUser, runSoccerProviderIngestForUser } from "@/lib/services/soccerLiveIngest";
 import type {
-  MlbGameRecord,
   MlbUserSettings,
   SoccerGameRecord,
   SoccerUserSettings,
@@ -73,18 +72,14 @@ async function loadMlbContext() {
   const { supabase, user } = await getBaseContext();
 
   if (!user) {
-    return { user: null, settings: null, games: [] as MlbGameRecord[] };
+    return { user: null, settings: null };
   }
 
-  const [{ data: settings }, { data: games }] = await Promise.all([
-    supabase.from("mlb_user_settings").select("*").eq("user_id", user.id).maybeSingle(),
-    supabase.from("mlb_games").select("*").order("last_synced_at", { ascending: false }).limit(16),
-  ]);
+  const { data: settings } = await supabase.from("mlb_user_settings").select("*").eq("user_id", user.id).maybeSingle();
 
   return {
     user,
     settings: settings as MlbUserSettings | null,
-    games: (games ?? []) as MlbGameRecord[],
   };
 }
 
@@ -195,7 +190,7 @@ export async function runManualMlbLiveSyncAction(prevState: EngineActionState): 
   void prevState;
 
   if (!hasSupabaseEnv()) {
-    return { ...initialSuccess, success: "Mock mode active. MLB ingest uses the internal mock provider until Supabase is connected." };
+    return { ...initialSuccess, success: "Mock mode active. MLB sync uses the internal mock provider until Supabase is connected." };
   }
 
   const { user, settings } = await loadMlbContext();
@@ -212,31 +207,6 @@ export async function runManualMlbLiveSyncAction(prevState: EngineActionState): 
 
   return {
     error: "",
-    success: `${result.provider} sync stored ${result.gamesCreated} games, ${result.watchlistsCreated} watchlist rows, ${result.oddsCreated} odds snapshots and ${result.alertsCreated} alerts.`,
-  };
-}
-
-export async function runManualMlbOddsSyncAction(prevState: EngineActionState): Promise<EngineActionState> {
-  void prevState;
-
-  if (!hasSupabaseEnv()) {
-    return { ...initialSuccess, success: "Mock mode active. MLB odds sync uses the internal mock provider until Supabase is connected." };
-  }
-
-  const { user, settings, games } = await loadMlbContext();
-  if (!user || !settings) {
-    return { error: "MLB settings not found. Save your MLB settings first.", success: "" };
-  }
-
-  const result = await captureMlbOddsSnapshotsForUser(settings, games);
-  revalidateEnginePaths();
-
-  if (result.error) {
-    return { error: result.error, success: "" };
-  }
-
-  return {
-    error: "",
-    success: `MLB odds sync captured ${result.snapshotsCreated} new snapshots.`,
+    success: `${result.provider} sync stored ${result.gamesCreated} games, evaluated ${result.pregameSignalsEvaluated} pre-game series spots, qualified ${result.qualifiedPregameSignals} signals and prepared ${result.alertsCreated} alerts.`,
   };
 }
