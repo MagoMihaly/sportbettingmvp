@@ -186,7 +186,7 @@ export async function getEngineData(): Promise<EnginePayload> {
   return {
     trackedMatches: payload.trackedMatches,
     oddsSnapshots: payload.oddsSnapshots,
-    ingestRuns: payload.ingestRuns,
+    ingestRuns: payload.ingestRuns.filter((run) => run.run_type === "odds_sync").slice(0, 3),
     settings: payload.settings,
     provider: payload.provider,
   };

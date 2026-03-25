@@ -90,11 +90,11 @@ export function IngestRunsPanel({ ingestRuns }: { ingestRuns: IngestRunRecord[] 
     <Card>
       <CardHeader>
         <CardDescription>Hockey scheduler history</CardDescription>
-        <CardTitle>Hockey ingest runs</CardTitle>
+        <CardTitle>Latest 3 hockey odds sync runs</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {ingestRuns.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">No ingest runs recorded yet.</div>
+          <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">No hockey odds sync runs recorded yet.</div>
         ) : (
           ingestRuns.map((run) => (
             <div key={run.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
