@@ -14,6 +14,7 @@ function formDataToLeagues(formData: FormData) {
 export async function updateLeagueSettingsAction(formData: FormData): Promise<void> {
   if (!hasSupabaseEnv()) {
     revalidatePath("/member/leagues");
+    revalidatePath("/member/hockey/leagues");
     return;
   }
 
@@ -50,11 +51,13 @@ export async function updateLeagueSettingsAction(formData: FormData): Promise<vo
 
   revalidatePath("/member");
   revalidatePath("/member/leagues");
+  revalidatePath("/member/hockey/leagues");
 }
 
 export async function updateNotificationSettingsAction(formData: FormData): Promise<void> {
   if (!hasSupabaseEnv()) {
     revalidatePath("/member/notifications");
+    revalidatePath("/member/hockey/notifications");
     return;
   }
 
@@ -81,4 +84,5 @@ export async function updateNotificationSettingsAction(formData: FormData): Prom
 
   revalidatePath("/member");
   revalidatePath("/member/notifications");
+  revalidatePath("/member/hockey/notifications");
 }

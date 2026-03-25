@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 
 const hockeyNavItems = [
   { href: "/member/hockey", label: "Dashboard" },
-  { href: "/member/signals", label: "Signals" },
-  { href: "/member/leagues", label: "Settings" },
-  { href: "/member/notifications", label: "Notifications" },
+  { href: "/member/hockey/signals", label: "Signals" },
+  { href: "/member/hockey/leagues", label: "Leagues" },
+  { href: "/member/hockey/notifications", label: "Notifications" },
 ];
 
 export function HockeySectionNav({ pathname }: { pathname: string }) {
