@@ -8,6 +8,7 @@ import type {
   MlbGameRecord,
   MlbLiveSignalRecord,
   MlbOddsSnapshotRecord,
+  MlbPregameSignalRecord,
   MlbProviderSyncLogRecord,
   MlbStateSnapshotRecord,
   MlbUserSettings,
@@ -103,9 +104,12 @@ export type SoccerDashboardPayload = {
 export type MlbDashboardStats = {
   trackedGames: number;
   activeSystems: number;
+  activePregameStrategies: number;
   watchlistRows: number;
   liveSignals: number;
   triggeredSignals: number;
+  pregameSignals: number;
+  qualifiedPregameSignals: number;
   alertsCount: number;
   oddsSnapshots: number;
 };
@@ -116,6 +120,7 @@ export type MlbDashboardPayload = {
   games: MlbGameRecord[];
   watchlists: MlbWatchlistRecord[];
   liveSignals: MlbLiveSignalRecord[];
+  pregameSignals: MlbPregameSignalRecord[];
   alerts: MlbAlertRecord[];
   oddsSnapshots: MlbOddsSnapshotRecord[];
   stateSnapshots: MlbStateSnapshotRecord[];

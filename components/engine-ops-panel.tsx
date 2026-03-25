@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import {
   runManualLiveSyncAction,
   runManualMlbLiveSyncAction,
-  runManualMlbOddsSyncAction,
   runManualOddsSyncAction,
   runManualSoccerLiveSyncAction,
   runManualSoccerOddsSyncAction,
@@ -27,6 +26,7 @@ const sportActionMap = {
     description: "Run hockey fixture sync and cost-aware odds capture.",
     syncCopy: "Run the hockey provider sync and persist fixtures into tracked matches.",
     oddsCopy: "Capture a hockey odds layer only for matches that remain in the active watch window.",
+    syncLabel: "Run live sync",
   },
   soccer: {
     sync: runManualSoccerLiveSyncAction,
@@ -35,31 +35,34 @@ const sportActionMap = {
     description: "Run soccer watchlist sync and H2/H3 odds capture.",
     syncCopy: "Run the soccer provider sync and persist games, watchlist rows and live signals.",
     oddsCopy: "Capture soccer odds only for games that stay in watchlist or trigger-zone state.",
+    syncLabel: "Run live sync",
   },
   mlb: {
     sync: runManualMlbLiveSyncAction,
-    odds: runManualMlbOddsSyncAction,
     title: "MLB engine ops",
-    description: "Run the MLB mock-safe ingest and odds capture pipeline.",
-    syncCopy: "Run the MLB provider sync and persist demo-safe games, watchlist rows and live signals.",
-    oddsCopy: "Capture MLB odds snapshots from the active provider for the current watchlist set.",
+    description: "Run the MLB schedule sync, then evaluate the pre-game series strategies on cached matchup history.",
+    syncCopy: "Run the MLB provider sync and persist scheduled games plus the latest pre-game series evaluations.",
+    syncLabel: "Run pre-game sync",
   },
 } as const satisfies Record<
   SupportedSportKey,
   {
     sync: (state: EngineActionState, payload: FormData) => Promise<EngineActionState>;
-    odds: (state: EngineActionState, payload: FormData) => Promise<EngineActionState>;
+    odds?: (state: EngineActionState, payload: FormData) => Promise<EngineActionState>;
     title: string;
     description: string;
     syncCopy: string;
-    oddsCopy: string;
+    syncLabel: string;
+    oddsCopy?: string;
   }
 >;
 
 export function SportEngineOpsPanel({ sport }: { sport: SupportedSportKey }) {
   const config = sportActionMap[sport];
+  const hasOddsSync = "odds" in config && typeof config.odds === "function";
+  const oddsHandler = hasOddsSync ? config.odds : config.sync;
   const [liveState, liveAction, livePending] = useActionState(config.sync, initialState);
-  const [oddsState, oddsAction, oddsPending] = useActionState(config.odds, initialState);
+  const [oddsState, oddsAction, oddsPending] = useActionState(oddsHandler, initialState);
 
   return (
     <Card>
@@ -71,16 +74,18 @@ export function SportEngineOpsPanel({ sport }: { sport: SupportedSportKey }) {
         <p className="text-sm leading-7 text-slate-300">{config.description}</p>
         <form action={liveAction} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="text-sm text-slate-300">{config.syncCopy}</div>
-          <Button disabled={livePending}>Run live sync</Button>
+          <Button disabled={livePending}>{config.syncLabel}</Button>
           {liveState.error ? <p className="text-sm text-rose-300">{liveState.error}</p> : null}
           {liveState.success ? <p className="text-sm text-emerald-300">{liveState.success}</p> : null}
         </form>
-        <form action={oddsAction} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="text-sm text-slate-300">{config.oddsCopy}</div>
-          <Button variant="outline" disabled={oddsPending}>Run odds sync</Button>
-          {oddsState.error ? <p className="text-sm text-rose-300">{oddsState.error}</p> : null}
-          {oddsState.success ? <p className="text-sm text-emerald-300">{oddsState.success}</p> : null}
-        </form>
+        {hasOddsSync ? (
+          <form action={oddsAction} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="text-sm text-slate-300">{config.oddsCopy}</div>
+            <Button variant="outline" disabled={oddsPending}>Run odds sync</Button>
+            {oddsState.error ? <p className="text-sm text-rose-300">{oddsState.error}</p> : null}
+            {oddsState.success ? <p className="text-sm text-emerald-300">{oddsState.success}</p> : null}
+          </form>
+        ) : null}
       </CardContent>
     </Card>
   );

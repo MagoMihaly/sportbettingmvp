@@ -356,6 +356,7 @@ export type SoccerDataQualityFlagRecord = {
 export type MlbUserSettings = {
   user_id: string;
   selected_systems: string[];
+  selected_pregame_strategies?: string[];
   notifications_enabled: boolean;
   email_notifications: boolean;
   push_notifications: boolean;
@@ -445,11 +446,34 @@ export type MlbLiveSignalRecord = {
   payload: Record<string, unknown> | null;
 };
 
+export type MlbPregameSignalRecord = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  game_id: string;
+  strategy_id: string;
+  signal_key: string;
+  series_key: string;
+  series_game_number: 2 | 3;
+  signal_team: string;
+  signal_team_side: "home" | "away";
+  signal_direction: "favorite" | "underdog";
+  market_type: string;
+  evaluation_status: "candidate" | "qualified" | "skipped";
+  odds: number | null;
+  reason_summary: string;
+  skip_reason: string | null;
+  source_provider: string;
+  evaluated_at: string;
+  payload: Record<string, unknown> | null;
+};
+
 export type MlbAlertRecord = {
   id: string;
   created_at: string;
   user_id: string;
   mlb_live_signal_id: string | null;
+  mlb_pregame_signal_id?: string | null;
   alert_type: string;
   channel: string;
   title: string;

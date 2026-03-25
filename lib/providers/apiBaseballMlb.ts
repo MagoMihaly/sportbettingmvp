@@ -1,5 +1,5 @@
 import { getApiBaseballEnv } from "@/lib/supabase/env";
-import type { ExternalMlbGame, ExternalMlbMarketData, MlbApiProvider } from "@/lib/types/mlb";
+import type { ExternalMlbGame, MlbApiProvider } from "@/lib/types/mlb";
 
 function createNotReadyError(reason: string) {
   return new Error(`API-Baseball MLB adapter is not fully activated yet: ${reason}`);
@@ -37,12 +37,5 @@ export class ApiBaseballMlbProvider implements MlbApiProvider {
     this.assertConfigured();
     void externalGameId;
     throw createNotReadyError("game details mapping is prepared but intentionally not activated before real payload validation");
-  }
-
-  async getMarketData(externalGameId: string, marketKey: string): Promise<ExternalMlbMarketData[]> {
-    this.assertConfigured();
-    void externalGameId;
-    void marketKey;
-    throw createNotReadyError("odds mapping is prepared but intentionally not activated before real payload validation");
   }
 }

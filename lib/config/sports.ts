@@ -27,13 +27,13 @@ export const supportedSports = [
     key: "mlb",
     label: "MLB",
     shortLabel: "MLB",
-    description: "Inning-based demo signal systems in a production-shaped pipeline.",
+    description: "Pre-game series strategies with cached matchup history and alert-ready outputs.",
     href: "/member/mlb",
     settingsHref: "/member/mlb/settings",
     signalsHref: "/member/mlb/signals",
     accentClass: "text-amber-300",
     badgeVariant: "warning",
-    defaultMarketLabel: "Inning-state signal systems",
+    defaultMarketLabel: "Pre-game series strategies",
   },
 ] as const;
 

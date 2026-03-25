@@ -22,7 +22,7 @@ export default async function MemberDashboardPage() {
   const totalTriggeredSignals =
     hockey.stats.triggeredSignals +
     (soccerEnabled ? soccer.stats.triggeredSignals : 0) +
-    (mlbEnabled ? mlb.stats.triggeredSignals : 0);
+    (mlbEnabled ? mlb.stats.qualifiedPregameSignals : 0);
   const totalAlerts =
     hockey.stats.alertsCount +
     (soccerEnabled ? soccer.stats.alertsCount : 0) +
@@ -47,7 +47,7 @@ export default async function MemberDashboardPage() {
         <Card><CardHeader><CardDescription>Triggered signals</CardDescription><CardTitle>{totalTriggeredSignals}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Total alerts</CardDescription><CardTitle>{totalAlerts}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Hockey leagues</CardDescription><CardTitle>{hockey.stats.activeLeagues}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Soccer + MLB systems</CardDescription><CardTitle>{(soccerEnabled ? soccer.stats.activeLeagues : 0) + (mlbEnabled ? mlb.stats.activeSystems : 0)}</CardTitle></CardHeader></Card>
+        <Card><CardHeader><CardDescription>Soccer + MLB strategy scope</CardDescription><CardTitle>{(soccerEnabled ? soccer.stats.activeLeagues : 0) + (mlbEnabled ? mlb.stats.activePregameStrategies : 0)}</CardTitle></CardHeader></Card>
       </div>
 
       <div className={`grid gap-6 ${soccerEnabled && mlbEnabled ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
@@ -88,14 +88,14 @@ export default async function MemberDashboardPage() {
         {mlbEnabled ? (
           <SportOverviewCard
             label="MLB"
-            description="MLB is now a first-class module in mock-safe mode so we can validate multi-sport UX and signal handling without committing to another paid feed yet."
+            description="MLB now runs as a pre-game series module, so the signal flow stays cheap, testable and separate from the retired live-only systems."
             accentVariant="warning"
-            statusLabel="Inning-state signal systems"
+            statusLabel="Pre-game series strategies"
             notificationsEnabled={mlb.settings?.notifications_enabled ?? true}
             summaryItems={[
-              { label: "Triggered", value: mlb.stats.triggeredSignals },
-              { label: "Systems", value: mlb.stats.activeSystems },
-              { label: "Watchlist", value: mlb.stats.watchlistRows },
+              { label: "Qualified", value: mlb.stats.qualifiedPregameSignals },
+              { label: "Strategies", value: mlb.stats.activePregameStrategies },
+              { label: "Evaluated", value: mlb.stats.pregameSignals },
               { label: "Provider", value: mlb.provider.displayName },
             ]}
             href="/member/mlb"

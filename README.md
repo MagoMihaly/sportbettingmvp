@@ -6,7 +6,7 @@ Production-style MVP foundation for a multi-sport signal platform. Hockey, socce
 
 - Hockey workspace with provider abstraction, signal tracking and scheduler-safe ingest
 - Soccer workspace prepared for API-Football with H2 and H3 systems
-- MLB workspace in mock-safe mode so the multi-sport pipeline stays testable now
+- MLB workspace focused on pre-game series strategies
 - Shared auth, push subscription storage, protected scheduler endpoints and member shell
 
 ## Multi-sport model
@@ -18,7 +18,7 @@ Production-style MVP foundation for a multi-sport signal platform. Hockey, socce
 
 Each sport keeps:
 - its own settings surface
-- its own watchlist and signal records
+- its own signal records
 - its own provider sync logs
 - its own alert generation path
 
@@ -66,13 +66,16 @@ Run these migrations in order:
 3. [003_alert_platform_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/003_alert_platform_foundation.sql)
 4. [004_soccer_module_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/004_soccer_module_foundation.sql)
 5. [005_mlb_module_foundation.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/005_mlb_module_foundation.sql)
+6. [006_mlb_pregame_strategies.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/006_mlb_pregame_strategies.sql)
+7. [007_remove_mlb_f5_scoreless.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/007_remove_mlb_f5_scoreless.sql)
+8. [008_remove_mlb_live_systems.sql](C:/Users/mago4/OneDrive/Asztali%20gép/Appok/Sportsbetting/supabase/migrations/008_remove_mlb_live_systems.sql)
 
 ## API-efficient polling strategy
 
 The project now uses a staged approach:
-1. Fixture sync only for selected sports and selected leagues or systems
-2. Server-side watchlist creation to narrow the live set
-3. Odds requests only for watchlist or trigger-zone games
+1. Fixture sync only for selected sports and selected leagues or strategies
+2. Server-side shortlist creation to narrow the higher-cost processing set
+3. Odds requests only for sports that still use odds-aware live engines
 4. Closed or stale games fall out of the higher-cost sync paths quickly
 
 This keeps the MVP reliable while reducing unnecessary API pressure.
@@ -103,7 +106,6 @@ Soccer:
 
 MLB:
 - `/api/internal/check-mlb-triggers`
-- `/api/internal/capture-mlb-odds`
 
 All scheduler endpoints are protected by `Authorization: Bearer <CRON_SECRET>`.
 
@@ -116,7 +118,7 @@ Repository secrets required:
 - `SCHEDULER_BASE_URL`
 - `CRON_SECRET`
 
-The workflow now calls hockey, soccer and MLB endpoints independently so one sport cannot block the others.
+The workflow calls hockey, soccer and MLB endpoints independently so one sport cannot block the others.
 
 ## Local development
 
