@@ -1,24 +1,29 @@
 import Link from "next/link";
-import { ArrowRight, Bell, ChartColumn, ShieldCheck } from "lucide-react";
+import { ArrowRight, Bell, ChartColumn, ShieldCheck, Waves } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { priorityLeagues } from "@/lib/config/leagues";
+import { supportedSports } from "@/lib/config/sports";
 
 const features = [
   {
-    title: "Period-based trigger tracking",
-    description: "Log, monitor and surface 3rd period signal opportunities when selected teams stay scoreless through two periods.",
+    title: "Multi-sport by design",
+    description: "Each sport keeps its own rule logic, while alerts, auth and scheduling stay consistent across the platform.",
+    icon: Waves,
+  },
+  {
+    title: "API-efficient workflow",
+    description: "Fixtures sync first, watchlists narrow the field, and only trigger-zone games get more expensive live attention.",
     icon: ChartColumn,
   },
   {
-    title: "Member-ready workflow",
-    description: "From protected dashboard to settings and structured signal history, the MVP is ready for operator-grade iteration.",
+    title: "Protected member ops",
+    description: "Supabase-backed auth, sport-specific settings and scheduler-safe endpoints are already wired for reliable iteration.",
     icon: ShieldCheck,
   },
   {
-    title: "Alert-first architecture",
-    description: "Notification preferences, mock trigger flow and service interfaces are already aligned for later live delivery channels.",
+    title: "Alert-ready architecture",
+    description: "Dashboard, push subscription flow and per-sport alert records are aligned for later delivery expansion.",
     icon: Bell,
   },
 ];
@@ -34,28 +39,28 @@ export default function HomePage() {
               <Link href="/login">Login</Link>
             </Button>
             <Button asChild>
-              <Link href="/login">Get Access</Link>
+              <Link href="/login">Get access</Link>
             </Button>
           </div>
         </header>
 
-        <div className="grid flex-1 gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        <div className="grid flex-1 gap-12 py-16 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
           <div className="space-y-8">
             <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-200">
-              European hockey betting signal engine
+              Multi-sport signal platform for hockey, soccer and MLB
             </div>
             <div className="space-y-6">
               <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-white sm:text-6xl">
-                Track, log and alert on 3rd period hockey signals with a clean research workflow.
+                One member workspace for multi-sport signal tracking and alert delivery.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-slate-300">
-                European Hockey Signal Engine gives you a focused member area for tracking leagues, logging signals and surfacing scoreless-period trigger opportunities without pretending to be a sportsbook.
+                Signal Ops is an MVP research platform that keeps hockey, soccer and MLB in separate sport modules while sharing auth, scheduling, alerts and operator workflows.
               </p>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Button size="lg" asChild>
                 <Link href="/login">
-                  Login / Get Access
+                  Open member area
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -66,61 +71,47 @@ export default function HomePage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <Card>
                 <CardHeader>
-                  <CardDescription>Focus</CardDescription>
-                  <CardTitle>European leagues</CardTitle>
+                  <CardDescription>Sports</CardDescription>
+                  <CardTitle>3 active modules</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-slate-300">Seeded around sharp, trackable hockey competitions.</CardContent>
+                <CardContent className="text-sm text-slate-300">Hockey, Soccer and MLB are visible as first-class workspaces.</CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardDescription>Workflow</CardDescription>
-                  <CardTitle>Signals + alerts</CardTitle>
+                  <CardDescription>Polling</CardDescription>
+                  <CardTitle>Watchlist-first</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-slate-300">Manual and mock-driven today, API-ready tomorrow.</CardContent>
+                <CardContent className="text-sm text-slate-300">Only selected sports, leagues and trigger-zone games deserve costly live polling.</CardContent>
               </Card>
               <Card>
                 <CardHeader>
                   <CardDescription>Architecture</CardDescription>
                   <CardTitle>Supabase-backed</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-slate-300">Auth, RLS and scalable data structure for later expansion.</CardContent>
+                <CardContent className="text-sm text-slate-300">Auth, storage, scheduler endpoints and alerts stay additive and deployment-safe.</CardContent>
               </Card>
             </div>
           </div>
 
           <Card className="overflow-hidden border-cyan-400/10 bg-slate-950/90">
             <CardHeader>
-              <CardDescription>Signal preview</CardDescription>
-              <CardTitle>Live research console feel</CardTitle>
+              <CardDescription>Supported sports</CardDescription>
+              <CardTitle>Separate rules, shared platform</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
-                <div className="flex items-center justify-between text-sm text-slate-400">
-                  <span>Triggered signal</span>
-                  <span>3rd period window</span>
+              {supportedSports.map((sport) => (
+                <div key={sport.key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className={`text-xl font-semibold ${sport.accentClass}`}>{sport.label}</div>
+                  <p className="mt-2 text-sm leading-7 text-slate-400">{sport.description}</p>
                 </div>
-                <div className="mt-4 flex items-end justify-between gap-4">
-                  <div>
-                    <div className="text-xl font-semibold text-white">Tappara vs Ilves</div>
-                    <div className="mt-2 text-sm text-slate-400">Finnish Liiga • Selected team: Tappara</div>
-                  </div>
-                  <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm text-cyan-300">P1 0 | P2 0</div>
-                </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {priorityLeagues.slice(0, 6).map((league) => (
-                  <div key={league} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-                    {league}
-                  </div>
-                ))}
-              </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-10">
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
@@ -141,15 +132,16 @@ export default function HomePage() {
       <section id="workflow" className="mx-auto max-w-7xl px-6 py-12 sm:px-8 lg:px-10">
         <Card>
           <CardHeader>
-            <CardDescription>Supported workflow</CardDescription>
-            <CardTitle>Built for research, tracking and later automation</CardTitle>
+            <CardDescription>How it works</CardDescription>
+            <CardTitle>Stable MVP workflow before full automation</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-4">
+          <CardContent className="grid gap-6 lg:grid-cols-5">
             {[
-              "Select priority leagues and notification preferences.",
-              "Log or ingest signal candidates with period scoring context.",
-              "Mark eligible 3rd period triggers automatically when P1 and P2 stay scoreless.",
-              "Review dashboard stats, latest signals and triggered states in the member area.",
+              "Select the sports and sport-specific systems you want to track.",
+              "Sync fixtures into a watchlist so only relevant games keep moving through the pipeline.",
+              "Poll live state more aggressively only inside the trigger zone for the chosen sport.",
+              "Persist live signals, odds snapshots and alert logs in a shared platform layer.",
+              "Review the reason a signal fired from the member area instead of guessing from raw API data.",
             ].map((item, index) => (
               <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="text-sm text-cyan-300">0{index + 1}</div>
@@ -162,5 +154,3 @@ export default function HomePage() {
     </main>
   );
 }
-
-

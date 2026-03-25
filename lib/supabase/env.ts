@@ -33,7 +33,11 @@ export function getProviderApiKey() {
 }
 
 export function isSoccerModuleEnabled() {
-  return (process.env.SOCCER_MODULE_ENABLED ?? "false").toLowerCase() === "true";
+  return (process.env.SOCCER_MODULE_ENABLED ?? "true").toLowerCase() === "true";
+}
+
+export function isMlbModuleEnabled() {
+  return (process.env.MLB_MODULE_ENABLED ?? "true").toLowerCase() === "true";
 }
 
 export function isSoccerFreePlanSafeMode() {
@@ -48,5 +52,12 @@ export function getApiFootballEnv() {
   return {
     apiKey: process.env.API_FOOTBALL_API_KEY ?? "",
     baseUrl: process.env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io",
+  };
+}
+
+export function getApiBaseballEnv() {
+  return {
+    apiKey: process.env.API_BASEBALL_API_KEY ?? "",
+    baseUrl: process.env.API_BASEBALL_BASE_URL ?? "https://v1.baseball.api-sports.io",
   };
 }

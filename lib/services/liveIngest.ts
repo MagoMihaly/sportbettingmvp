@@ -2,6 +2,7 @@ import { createHockeyProvider } from "@/lib/providers/hockeyApi";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { persistTriggeredAlerts, upsertGameRecord } from "@/lib/services/alerts";
+import { shouldCaptureHockeyOdds, shouldCaptureHockeyOddsSnapshotRow, shouldPersistHockeyGame } from "@/lib/services/polling";
 import { getTriggeredSignals } from "@/lib/services/signalEngine";
 import type { TrackedMatchRecord, UserSettings } from "@/lib/types/database";
 import type { ExternalHockeyGame } from "@/lib/types/provider";
@@ -29,7 +30,9 @@ async function getWatchlistGames(settings: UserSettings) {
     deduped.set(`${game.source}:${game.externalMatchId}`, game);
   }
 
-  return [...deduped.values()].sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+  return [...deduped.values()]
+    .filter((game) => shouldPersistHockeyGame(game))
+    .sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
 }
 
 export async function buildTrackedMatches(settings: UserSettings) {
@@ -79,6 +82,10 @@ async function insertOddsSnapshot(
   trackedMatchId: string,
   game: ExternalHockeyGame,
 ) {
+  if (!shouldCaptureHockeyOdds(game)) {
+    return false;
+  }
+
   const marketData = await provider.getMarketData(game.externalMatchId, settings.preferred_market_type);
   const candidate = marketData.find((item) => item.odds !== null) ?? {
     bookmaker: game.bookmaker,
@@ -219,7 +226,7 @@ export async function captureOddsSnapshotsForUser(settings: UserSettings, matche
   const admin = createAdminClient();
   let snapshotsCreated = 0;
 
-  for (const match of matches) {
+  for (const match of matches.filter((entry) => shouldCaptureHockeyOddsSnapshotRow(entry))) {
     const dynamicOdds = 1.72 + (snapshotsCreated % 6) * 0.11;
     const { error } = await admin.from("odds_snapshots").insert({
       user_id: settings.user_id,
@@ -279,7 +286,7 @@ export async function captureOddsSnapshotsForAllUsers() {
       .select("*")
       .eq("user_id", settings.user_id)
       .order("last_synced_at", { ascending: false })
-      .limit(8);
+      .limit(16);
 
     const result = await captureOddsSnapshotsForUser(settings, (matches ?? []) as TrackedMatchRecord[]);
     snapshotsCreated += result.snapshotsCreated;

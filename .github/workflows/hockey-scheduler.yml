@@ -66,3 +66,33 @@ jobs:
           curl --fail --show-error --silent \
             -X POST "$SCHEDULER_BASE_URL/api/internal/capture-soccer-odds" \
             -H "Authorization: Bearer $CRON_SECRET"
+
+  check-mlb-triggers:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call MLB trigger check endpoint
+        env:
+          SCHEDULER_BASE_URL: ${{ secrets.SCHEDULER_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$SCHEDULER_BASE_URL"
+          test -n "$CRON_SECRET"
+          curl --fail --show-error --silent \
+            -X POST "$SCHEDULER_BASE_URL/api/internal/check-mlb-triggers" \
+            -H "Authorization: Bearer $CRON_SECRET"
+
+  capture-mlb-odds:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call MLB odds sync endpoint
+        env:
+          SCHEDULER_BASE_URL: ${{ secrets.SCHEDULER_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$SCHEDULER_BASE_URL"
+          test -n "$CRON_SECRET"
+          curl --fail --show-error --silent \
+            -X POST "$SCHEDULER_BASE_URL/api/internal/capture-mlb-odds" \
+            -H "Authorization: Bearer $CRON_SECRET"

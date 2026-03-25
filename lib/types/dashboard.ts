@@ -4,6 +4,14 @@ import type {
   OddsSnapshotRecord,
   ProfileRecord,
   PushSubscriptionRecord,
+  MlbAlertRecord,
+  MlbGameRecord,
+  MlbLiveSignalRecord,
+  MlbOddsSnapshotRecord,
+  MlbProviderSyncLogRecord,
+  MlbStateSnapshotRecord,
+  MlbUserSettings,
+  MlbWatchlistRecord,
   SoccerAlertRecord,
   SoccerDataQualityFlagRecord,
   SoccerGameRecord,
@@ -89,5 +97,29 @@ export type SoccerDashboardPayload = {
   syncLogs: SoccerProviderSyncLogRecord[];
   dataQualityFlags: SoccerDataQualityFlagRecord[];
   stats: SoccerDashboardStats;
+  provider: ProviderSummary;
+};
+
+export type MlbDashboardStats = {
+  trackedGames: number;
+  activeSystems: number;
+  watchlistRows: number;
+  liveSignals: number;
+  triggeredSignals: number;
+  alertsCount: number;
+  oddsSnapshots: number;
+};
+
+export type MlbDashboardPayload = {
+  viewer: DashboardViewer;
+  settings: MlbUserSettings | null;
+  games: MlbGameRecord[];
+  watchlists: MlbWatchlistRecord[];
+  liveSignals: MlbLiveSignalRecord[];
+  alerts: MlbAlertRecord[];
+  oddsSnapshots: MlbOddsSnapshotRecord[];
+  stateSnapshots: MlbStateSnapshotRecord[];
+  syncLogs: MlbProviderSyncLogRecord[];
+  stats: MlbDashboardStats;
   provider: ProviderSummary;
 };

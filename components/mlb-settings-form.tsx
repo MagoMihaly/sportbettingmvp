@@ -1,28 +1,30 @@
-import { soccerMarkets } from "@/lib/config/soccerMarkets";
-import { soccerLeagueConfigs } from "@/lib/config/soccerLeagues";
-import { updateSoccerSettingsAction } from "@/actions/soccer-settings";
+import { mlbSystems } from "@/lib/config/mlbSystems";
+import { updateMlbSettingsAction } from "@/actions/mlb-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { SoccerUserSettings } from "@/lib/types/database";
+import type { MlbUserSettings } from "@/lib/types/database";
 
-export function SoccerSettingsForm({ settings }: { settings: SoccerUserSettings | null }) {
-  const selectedLeagues = settings?.selected_leagues ?? soccerLeagueConfigs.map((league) => league.slug);
+export function MlbSettingsForm({ settings }: { settings: MlbUserSettings | null }) {
+  const selectedSystems = settings?.selected_systems ?? mlbSystems.map((system) => system.key);
 
   return (
     <Card>
       <CardHeader>
-        <CardDescription>API-Football Pro configuration surface</CardDescription>
-        <CardTitle>Soccer watchlist and alerts</CardTitle>
+        <CardDescription>MLB signal controls</CardDescription>
+        <CardTitle>MLB watchlist and alerts</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={updateSoccerSettingsAction} className="space-y-6">
+        <form action={updateMlbSettingsAction} className="space-y-6">
           <div className="space-y-3">
-            <div className="text-sm font-medium text-slate-200">Tracked leagues</div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {soccerLeagueConfigs.map((league) => (
-                <label key={league.slug} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-                  <input type="checkbox" name="selected_leagues" value={league.slug} defaultChecked={selectedLeagues.includes(league.slug)} className="h-4 w-4 rounded border-white/10 bg-slate-950" />
-                  <span>{league.name}</span>
+            <div className="text-sm font-medium text-slate-200">Active systems</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {mlbSystems.map((system) => (
+                <label key={system.key} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                  <div className="flex items-center gap-3">
+                    <input type="checkbox" name="selected_systems" value={system.key} defaultChecked={selectedSystems.includes(system.key)} className="h-4 w-4 rounded border-white/10 bg-slate-950" />
+                    <span>{system.label}</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-6 text-slate-400">{system.description}</p>
                 </label>
               ))}
             </div>
@@ -31,9 +33,9 @@ export function SoccerSettingsForm({ settings }: { settings: SoccerUserSettings 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm text-slate-200">
               <span className="block">Preferred market</span>
-              <select name="preferred_market_key" defaultValue={settings?.preferred_market_key ?? "H2_2H_OVER_1_5"} className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white">
-                {soccerMarkets.map((market) => (
-                  <option key={market.key} value={market.key}>{market.label}</option>
+              <select name="preferred_market_key" defaultValue={settings?.preferred_market_key ?? "MLB_F5_SCORELESS"} className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white">
+                {mlbSystems.map((system) => (
+                  <option key={system.key} value={system.key}>{system.label}</option>
                 ))}
               </select>
             </label>
@@ -59,9 +61,9 @@ export function SoccerSettingsForm({ settings }: { settings: SoccerUserSettings 
           </div>
 
           <p className="text-sm leading-6 text-slate-400">
-            Soccer keeps its own rules and settings, but uses the same platform shell as hockey and MLB. When API-Football credentials are added, the scheduler-ready ingest layer can start filling watchlists, state snapshots, odds snapshots and live alerts without changing the other sports.
+            MLB runs in mock-safe mode by default so the multi-sport pipeline stays testable without adding a new provider before we actually need it.
           </p>
-          <Button>Save soccer settings</Button>
+          <Button>Save MLB settings</Button>
         </form>
       </CardContent>
     </Card>

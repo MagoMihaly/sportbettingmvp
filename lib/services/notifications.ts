@@ -1,8 +1,11 @@
-import type { AlertRecord, PushSubscriptionRecord, SignalRecord, SoccerUserSettings, UserSettings } from "@/lib/types/database";
+import type { AlertRecord, MlbUserSettings, PushSubscriptionRecord, SignalRecord, SoccerUserSettings, UserSettings } from "@/lib/types/database";
 
 export type NotificationChannel = "dashboard" | "email" | "push" | "telegram" | "discord";
 
-type NotificationSettingsLike = Pick<UserSettings, "notifications_enabled" | "email_notifications" | "push_notifications"> | Pick<SoccerUserSettings, "notifications_enabled" | "email_notifications" | "push_notifications">;
+type NotificationSettingsLike =
+  | Pick<UserSettings, "notifications_enabled" | "email_notifications" | "push_notifications">
+  | Pick<SoccerUserSettings, "notifications_enabled" | "email_notifications" | "push_notifications">
+  | Pick<MlbUserSettings, "notifications_enabled" | "email_notifications" | "push_notifications">;
 
 export type NotificationPayload = {
   channel: NotificationChannel;
