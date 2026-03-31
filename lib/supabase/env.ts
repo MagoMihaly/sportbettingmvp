@@ -25,6 +25,7 @@ export function getWebPushEnv() {
   return {
     publicKey: process.env.WEB_PUSH_VAPID_PUBLIC_KEY ?? "",
     privateKey: process.env.WEB_PUSH_VAPID_PRIVATE_KEY ?? "",
+    subject: process.env.WEB_PUSH_VAPID_SUBJECT ?? "mailto:notifications@signalops.local",
   };
 }
 

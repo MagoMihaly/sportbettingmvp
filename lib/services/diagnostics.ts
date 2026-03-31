@@ -2,7 +2,7 @@ import { diagnosticsTests } from "@/lib/config/diagnostics";
 import { priorityLeagues } from "@/lib/config/leagues";
 import { defaultSoccerLeagueSlugs } from "@/lib/config/soccerLeagues";
 import { mockMlbGames, mockMlbOddsSnapshots } from "@/lib/mock/mlb";
-import { buildTriggeredSignalNotification, deliverAlertPlaceholder, getEnabledNotificationChannels } from "@/lib/services/notifications";
+import { buildTriggeredSignalNotification, getEnabledNotificationChannels, validatePushDeliverySetup } from "@/lib/services/notifications";
 import { getTriggeredSignals } from "@/lib/services/signalEngine";
 import { evaluateMlbPregameSignals } from "@/lib/services/mlbPregameEngine";
 import { getTriggeredSoccerSignals } from "@/lib/services/soccerSignalEngine";
@@ -24,7 +24,7 @@ import { getActiveMlbProviderSummary } from "@/lib/services/mlbLiveIngest";
 import { getActiveProviderSummary } from "@/lib/services/liveIngest";
 import { getActiveSoccerProviderSummary } from "@/lib/services/soccerLiveIngest";
 import { isSchedulerAuthorized } from "@/lib/services/schedulerAuth";
-import type { AlertRecord, SignalRecord } from "@/lib/types/database";
+import type { SignalRecord } from "@/lib/types/database";
 import type { DiagnosticsCheckMode, DiagnosticsCheckResult, DiagnosticsTestId } from "@/lib/types/diagnostics";
 import type { ExternalHockeyGame } from "@/lib/types/provider";
 import type { ExternalSoccerGame } from "@/lib/types/soccer";
@@ -118,6 +118,8 @@ function classifyProviderError(message: string) {
     normalized.includes("invalid api key") ||
     normalized.includes("invalid key") ||
     normalized.includes("application error") ||
+    normalized.includes("requires a paid or paid+ subscription") ||
+    normalized.includes("paid or paid+ subscription") ||
     normalized.includes("unauthorized") ||
     normalized.includes("forbidden")
   ) {
@@ -357,19 +359,20 @@ async function runNotificationSubsystemCheck() {
     league: "Diagnostics League",
   } as SignalRecord);
 
-  const placeholderResult = await deliverAlertPlaceholder({} as AlertRecord);
-  const webPushEnv = getWebPushEnv();
-  const pushConfigured = Boolean(webPushEnv.publicKey && webPushEnv.privateKey);
-
   if (sampleNotifications.length === 0 || notificationChannels.length === 0) {
     return buildFailure("notification-subsystem", "Invalid Response", "Notification payload construction returned no channels.");
   }
 
-  const details = pushConfigured
-    ? `Notification payloads are buildable, ${notificationChannels.join(", ")} channels are available and push keys are configured.`
-    : `Notification payloads are buildable, ${notificationChannels.join(", ")} channels are available and placeholder delivery is ready (${placeholderResult.provider}). Web push keys are not fully configured.`;
+  const pushReadiness = validatePushDeliverySetup();
+  if (!pushReadiness.ok) {
+    return buildFailure("notification-subsystem", pushReadiness.summary, `Notification payloads are buildable, but push delivery is not ready. ${pushReadiness.details}`, pushReadiness.summary === "Config Missing" ? "config" : "full");
+  }
 
-  return buildSuccess("notification-subsystem", details, pushConfigured ? "full" : "partial");
+  return buildSuccess(
+    "notification-subsystem",
+    `Notification payloads are buildable, ${notificationChannels.join(", ")} channels are available and web push delivery is configured via ${pushReadiness.provider}.`,
+    "full",
+  );
 }
 
 async function runEnvConfigCheck() {

@@ -1,12 +1,12 @@
 import { mlbPregameStrategies } from "@/lib/config/mlbPregameStrategies";
 import { createMlbProvider } from "@/lib/providers/mlbApi";
-import { getEnabledNotificationChannels } from "@/lib/services/notifications";
+import { deliverPushAlert, getEnabledNotificationChannels } from "@/lib/services/notifications";
 import { buildMlbSeriesContexts } from "@/lib/services/mlbPregameShared";
 import { evaluateMlbFavoriteRecoveryStrategy } from "@/lib/services/mlbFavoriteRecoveryStrategy";
 import { evaluateMlbSeriesGame3UnderdogStrategy } from "@/lib/services/mlbSeriesGame3UnderdogStrategy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import type { MlbGameRecord, MlbOddsSnapshotRecord, MlbUserSettings } from "@/lib/types/database";
+import type { AlertRecord, MlbGameRecord, MlbOddsSnapshotRecord, MlbUserSettings } from "@/lib/types/database";
 import type { MlbPregameSignalEvaluation } from "@/lib/types/mlbPregame";
 
 const provider = createMlbProvider();
@@ -84,7 +84,8 @@ async function persistAlertForEvaluation(params: {
       continue;
     }
 
-    const { error } = await admin.from("mlb_alerts").insert({
+    const initialStatus = channel === "dashboard" ? "sent" : channel === "push" ? "queued" : "pending";
+    const { data: insertedAlert, error } = await admin.from("mlb_alerts").insert({
       user_id: params.userId,
       mlb_live_signal_id: null,
       mlb_pregame_signal_id: params.signalId,
@@ -92,7 +93,7 @@ async function persistAlertForEvaluation(params: {
       channel,
       title: copy.title,
       body: copy.body,
-      status: channel === "dashboard" ? "sent" : "pending",
+      status: initialStatus,
       fingerprint,
       payload: {
         sport: "mlb",
@@ -101,9 +102,30 @@ async function persistAlertForEvaluation(params: {
         signalTeam: params.evaluation.signalTeam,
         seriesKey: params.evaluation.seriesKey,
       },
-    });
+    }).select("*").single();
 
-    if (!error) {
+    if (!error && insertedAlert) {
+      if (channel === "push") {
+        const delivery = await deliverPushAlert(insertedAlert as AlertRecord);
+        await admin
+          .from("mlb_alerts")
+          .update({
+            status: delivery.delivered ? "sent" : "failed",
+            delivered_at: delivery.delivered ? new Date().toISOString() : null,
+            payload: {
+              ...(((insertedAlert.payload ?? {}) as Record<string, unknown>)),
+              pushDelivery: {
+                provider: delivery.provider,
+                sentCount: delivery.sentCount,
+                failedCount: delivery.failedCount,
+                revokedCount: delivery.revokedCount,
+                reason: delivery.reason,
+              },
+            },
+          })
+          .eq("id", insertedAlert.id);
+      }
+
       alertsCreated += 1;
     }
   }

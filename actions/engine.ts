@@ -21,6 +21,14 @@ export type EngineActionState = {
 
 const initialSuccess = { error: "", success: "" };
 
+function toEngineErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unexpected engine error.";
+}
+
 async function getBaseContext() {
   const supabase = await createServerSupabaseClient();
   const {
@@ -107,13 +115,18 @@ export async function runManualLiveSyncAction(prevState: EngineActionState): Pro
     return { error: "Hockey user settings not found. Save your hockey league settings first.", success: "" };
   }
 
-  const result = await runProviderIngestForUser(settings);
-  revalidateEnginePaths();
+  try {
+    const result = await runProviderIngestForUser(settings);
+    revalidateEnginePaths();
 
-  return {
-    error: "",
-    success: `${result.provider} sync stored ${result.matchesCreated} matches, ${result.oddsCreated} odds snapshots, ${result.signalsCreated} live signals and ${result.alertsCreated} alerts.`,
-  };
+    return {
+      error: "",
+      success: `${result.provider} sync stored ${result.matchesCreated} matches, ${result.oddsCreated} odds snapshots, ${result.signalsCreated} live signals and ${result.alertsCreated} alerts.`,
+    };
+  } catch (error) {
+    console.warn("[engine] hockey live sync failed", error);
+    return { error: toEngineErrorMessage(error), success: "" };
+  }
 }
 
 export async function runManualOddsSyncAction(prevState: EngineActionState): Promise<EngineActionState> {
@@ -128,13 +141,18 @@ export async function runManualOddsSyncAction(prevState: EngineActionState): Pro
     return { error: "Hockey user settings not found. Save your hockey league settings first.", success: "" };
   }
 
-  const result = await captureOddsSnapshotsForUser(settings, matches);
-  revalidateEnginePaths();
+  try {
+    const result = await captureOddsSnapshotsForUser(settings, matches);
+    revalidateEnginePaths();
 
-  return {
-    error: "",
-    success: `Hockey odds sync captured ${result.snapshotsCreated} new snapshots.`,
-  };
+    return {
+      error: "",
+      success: `Hockey odds sync captured ${result.snapshotsCreated} new snapshots.`,
+    };
+  } catch (error) {
+    console.warn("[engine] hockey odds sync failed", error);
+    return { error: toEngineErrorMessage(error), success: "" };
+  }
 }
 
 export async function runManualSoccerLiveSyncAction(prevState: EngineActionState): Promise<EngineActionState> {
@@ -149,17 +167,22 @@ export async function runManualSoccerLiveSyncAction(prevState: EngineActionState
     return { error: "Soccer settings not found. Save your soccer settings first.", success: "" };
   }
 
-  const result = await runSoccerProviderIngestForUser(settings);
-  revalidateEnginePaths();
+  try {
+    const result = await runSoccerProviderIngestForUser(settings);
+    revalidateEnginePaths();
 
-  if (result.error) {
-    return { error: result.error, success: "" };
+    if (result.error) {
+      return { error: result.error, success: "" };
+    }
+
+    return {
+      error: "",
+      success: `${result.provider} sync stored ${result.gamesCreated} games, ${result.watchlistsCreated} watchlist rows, ${result.oddsCreated} odds snapshots and ${result.alertsCreated} alerts.`,
+    };
+  } catch (error) {
+    console.warn("[engine] soccer live sync failed", error);
+    return { error: toEngineErrorMessage(error), success: "" };
   }
-
-  return {
-    error: "",
-    success: `${result.provider} sync stored ${result.gamesCreated} games, ${result.watchlistsCreated} watchlist rows, ${result.oddsCreated} odds snapshots and ${result.alertsCreated} alerts.`,
-  };
 }
 
 export async function runManualSoccerOddsSyncAction(prevState: EngineActionState): Promise<EngineActionState> {
@@ -174,17 +197,22 @@ export async function runManualSoccerOddsSyncAction(prevState: EngineActionState
     return { error: "Soccer settings not found. Save your soccer settings first.", success: "" };
   }
 
-  const result = await captureSoccerOddsSnapshotsForUser(settings, games);
-  revalidateEnginePaths();
+  try {
+    const result = await captureSoccerOddsSnapshotsForUser(settings, games);
+    revalidateEnginePaths();
 
-  if (result.error) {
-    return { error: result.error, success: "" };
+    if (result.error) {
+      return { error: result.error, success: "" };
+    }
+
+    return {
+      error: "",
+      success: `Soccer odds sync captured ${result.snapshotsCreated} new snapshots.`,
+    };
+  } catch (error) {
+    console.warn("[engine] soccer odds sync failed", error);
+    return { error: toEngineErrorMessage(error), success: "" };
   }
-
-  return {
-    error: "",
-    success: `Soccer odds sync captured ${result.snapshotsCreated} new snapshots.`,
-  };
 }
 
 export async function runManualMlbLiveSyncAction(prevState: EngineActionState): Promise<EngineActionState> {
@@ -199,15 +227,20 @@ export async function runManualMlbLiveSyncAction(prevState: EngineActionState): 
     return { error: "MLB settings not found. Save your MLB settings first.", success: "" };
   }
 
-  const result = await runMlbProviderIngestForUser(settings);
-  revalidateEnginePaths();
+  try {
+    const result = await runMlbProviderIngestForUser(settings);
+    revalidateEnginePaths();
 
-  if (result.error) {
-    return { error: result.error, success: "" };
+    if (result.error) {
+      return { error: result.error, success: "" };
+    }
+
+    return {
+      error: "",
+      success: `${result.provider} sync stored ${result.gamesCreated} games, evaluated ${result.pregameSignalsEvaluated} pre-game series spots, qualified ${result.qualifiedPregameSignals} signals and prepared ${result.alertsCreated} alerts.`,
+    };
+  } catch (error) {
+    console.warn("[engine] MLB sync failed", error);
+    return { error: toEngineErrorMessage(error), success: "" };
   }
-
-  return {
-    error: "",
-    success: `${result.provider} sync stored ${result.gamesCreated} games, evaluated ${result.pregameSignalsEvaluated} pre-game series spots, qualified ${result.qualifiedPregameSignals} signals and prepared ${result.alertsCreated} alerts.`,
-  };
 }

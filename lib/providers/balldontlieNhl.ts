@@ -62,6 +62,26 @@ export class BalldontlieNhlProvider implements HockeyApiProvider {
     });
 
     if (!response.ok) {
+      let errorBody = "";
+
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = "";
+      }
+
+      const normalizedBody = errorBody.toLowerCase();
+
+      if (response.status === 401 || response.status === 403) {
+        if (normalizedBody.includes("requires a paid or paid+ subscription")) {
+          throw new Error(
+            `balldontlie NHL access failed: ${response.status} ${response.statusText}. The API key is present, but this endpoint requires a Paid or Paid+ subscription for NHL access.`,
+          );
+        }
+
+        throw new Error(`balldontlie NHL auth failed: ${response.status} ${response.statusText}. Check BALLDONTLIE_NHL_API_KEY and NHL access.`);
+      }
+
       throw new Error(`balldontlie NHL request failed: ${response.status} ${response.statusText}`);
     }
 

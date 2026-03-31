@@ -18,16 +18,31 @@ class HybridHockeyProvider implements HockeyApiProvider {
     method: "getScheduledGames" | "getLiveGames",
     leagues: string[],
   ) {
+    const failures: string[] = [];
     const results = await Promise.all(
-      this.providers.map((provider) => {
+      this.providers.map(async (provider) => {
         const providerLeagues = leagues.filter((league) => provider.supportsLeague(league));
-        return providerLeagues.length === 0
-          ? Promise.resolve([] as ExternalHockeyGame[])
-          : provider[method](providerLeagues);
+        if (providerLeagues.length === 0) {
+          return [] as ExternalHockeyGame[];
+        }
+
+        try {
+          return await provider[method](providerLeagues);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown hockey provider error.";
+          failures.push(`${provider.displayName}: ${message}`);
+          console.warn(`[hockey-provider] ${provider.displayName} ${method} failed`, error);
+          return [] as ExternalHockeyGame[];
+        }
       }),
     );
 
-    return results.flat().sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+    const merged = results.flat().sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
+    if (merged.length === 0 && failures.length > 0) {
+      throw new Error(failures[0]);
+    }
+
+    return merged;
   }
 
   async getScheduledGames(leagues: string[]) {
@@ -44,9 +59,13 @@ class HybridHockeyProvider implements HockeyApiProvider {
         continue;
       }
 
-      const game = await provider.getGameDetails(externalMatchId, league);
-      if (game) {
-        return game;
+      try {
+        const game = await provider.getGameDetails(externalMatchId, league);
+        if (game) {
+          return game;
+        }
+      } catch (error) {
+        console.warn(`[hockey-provider] ${provider.displayName} getGameDetails failed`, error);
       }
     }
 

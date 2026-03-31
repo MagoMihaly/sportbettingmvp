@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEnabledNotificationChannels } from "@/lib/services/notifications";
+import { deliverPushAlert, getEnabledNotificationChannels } from "@/lib/services/notifications";
+import type { AlertRecord } from "@/lib/types/database";
 import type { SoccerUserSettings } from "@/lib/types/database";
 import type { EvaluatedSoccerSignal, ExternalSoccerGame } from "@/lib/types/soccer";
 
@@ -78,14 +79,15 @@ export async function persistSoccerTriggeredAlerts(params: {
         continue;
       }
 
-      const { error } = await admin.from("soccer_alerts").insert({
+      const initialStatus = channel === "dashboard" ? "sent" : channel === "push" ? "queued" : "pending";
+      const { data: insertedAlert, error } = await admin.from("soccer_alerts").insert({
         user_id: params.userId,
         soccer_live_signal_id: liveSignalId,
         alert_type: signal.ruleType,
         channel,
         title: copy.title,
         body: copy.body,
-        status: channel === "dashboard" ? "sent" : "pending",
+        status: initialStatus,
         fingerprint,
         payload: {
           sport: "soccer",
@@ -93,9 +95,30 @@ export async function persistSoccerTriggeredAlerts(params: {
           externalGameId: params.game.externalMatchId,
           league: params.game.leagueName,
         },
-      });
+      }).select("*").single();
 
-      if (!error) {
+      if (!error && insertedAlert) {
+        if (channel === "push") {
+          const delivery = await deliverPushAlert(insertedAlert as AlertRecord);
+          await admin
+            .from("soccer_alerts")
+            .update({
+              status: delivery.delivered ? "sent" : "failed",
+              delivered_at: delivery.delivered ? new Date().toISOString() : null,
+              payload: {
+                ...(((insertedAlert.payload ?? {}) as Record<string, unknown>)),
+                pushDelivery: {
+                  provider: delivery.provider,
+                  sentCount: delivery.sentCount,
+                  failedCount: delivery.failedCount,
+                  revokedCount: delivery.revokedCount,
+                  reason: delivery.reason,
+                },
+              },
+            })
+            .eq("id", insertedAlert.id);
+        }
+
         alertsCreated += 1;
       }
     }
