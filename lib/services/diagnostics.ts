@@ -63,6 +63,15 @@ function buildFailure(
   return buildResult(id, "failed", summary, details, resolvedMode);
 }
 
+function buildWarning(
+  id: DiagnosticsTestId,
+  summary: string,
+  details: string,
+  mode: DiagnosticsCheckMode = "partial",
+) {
+  return buildResult(id, "warning", summary, details, mode);
+}
+
 function assertKnownTestId(testId: string): testId is DiagnosticsTestId {
   return diagnosticsTestSet.has(testId as DiagnosticsTestId);
 }
@@ -115,6 +124,16 @@ function classifyProviderError(message: string) {
   }
 
   if (
+    normalized.includes("rate limit") ||
+    normalized.includes("request limit") ||
+    normalized.includes("limit for the day") ||
+    normalized.includes("quota") ||
+    normalized.includes("too many requests")
+  ) {
+    return "Invalid Response" as const;
+  }
+
+  if (
     normalized.includes("missing application key") ||
     normalized.includes("invalid api key") ||
     normalized.includes("invalid key") ||
@@ -139,6 +158,17 @@ function classifyProviderError(message: string) {
   }
 
   return "Invalid Response" as const;
+}
+
+function isRateLimitMessage(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("rate limit") ||
+    normalized.includes("request limit") ||
+    normalized.includes("limit for the day") ||
+    normalized.includes("quota") ||
+    normalized.includes("too many requests")
+  );
 }
 
 function buildSampleHockeyGame(): ExternalHockeyGame {
@@ -307,7 +337,7 @@ async function runExternalProvidersCheck() {
         "MLB provider timed out during diagnostics.",
       );
       providerMessages.push(`MLB provider ${mlbProvider.displayName} answered with ${mlbGames.length} scheduled sample rows.`);
-  } catch (error) {
+    } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       failures.push({
         summary: classifyProviderError(message),
@@ -321,6 +351,15 @@ async function runExternalProvidersCheck() {
   if (failures.length > 0) {
     const primaryFailure = failures[0];
     const combinedDetails = [...providerMessages, ...failures.map((failure) => failure.details)].join(" ");
+
+    if (failures.every((failure) => isRateLimitMessage(failure.details))) {
+      return buildWarning(
+        "external-providers",
+        "Daily API request limit reached",
+        `${combinedDetails} The provider credentials are present and the integration path is working, but the current API-Football daily request quota has been exhausted. Wait for the quota reset or upgrade the plan, then re-run diagnostics.`,
+      );
+    }
+
     return buildFailure("external-providers", primaryFailure.summary, combinedDetails);
   }
 

@@ -10,7 +10,7 @@ export type DiagnosticsTestId =
   | "scheduler-readiness"
   | "end-to-end-communication";
 
-export type DiagnosticsRunStatus = "pending" | "testing" | "success" | "failed";
+export type DiagnosticsRunStatus = "pending" | "testing" | "success" | "warning" | "failed";
 export type DiagnosticsCheckMode = "full" | "partial" | "config";
 export type DiagnosticsExecutionScope = "client" | "server";
 

@@ -231,6 +231,15 @@ export class ApiFootballSoccerProvider implements SoccerApiProvider {
     const body = (await response.json()) as ApiFootballEnvelope;
     const apiError = extractApiError(body.errors);
     if (apiError) {
+      const normalizedError = apiError.toLowerCase();
+      if (
+        normalizedError.includes("request limit") ||
+        normalizedError.includes("limit for the day") ||
+        normalizedError.includes("quota")
+      ) {
+        throw new Error(`API-Football rate limit reached: ${apiError}`);
+      }
+
       throw new Error(`API-Football returned an application error: ${apiError}`);
     }
 

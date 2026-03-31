@@ -44,8 +44,9 @@ export function DiagnosticsRunner() {
   const [runStartedAt, setRunStartedAt] = useState<string | null>(null);
 
   const successCount = tests.filter((test) => test.status === "success").length;
+  const warningCount = tests.filter((test) => test.status === "warning").length;
   const failedCount = tests.filter((test) => test.status === "failed").length;
-  const completedCount = tests.filter((test) => test.status === "success" || test.status === "failed").length;
+  const completedCount = tests.filter((test) => test.status === "success" || test.status === "warning" || test.status === "failed").length;
   const hasResults = completedCount > 0;
 
   function updateTest(id: DiagnosticsUiState["id"], patch: Partial<DiagnosticsUiState>) {
@@ -147,7 +148,7 @@ export function DiagnosticsRunner() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
+        <CardContent className="grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Completed</div>
             <div className="mt-2 text-2xl font-semibold text-white">{completedCount}/{tests.length}</div>
@@ -156,6 +157,10 @@ export function DiagnosticsRunner() {
             <div className="text-xs uppercase tracking-[0.18em] text-emerald-200/80">Working</div>
             <div className="mt-2 text-2xl font-semibold text-emerald-300">{successCount}</div>
           </div>
+          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-amber-200/80">Warnings</div>
+            <div className="mt-2 text-2xl font-semibold text-amber-300">{warningCount}</div>
+          </div>
           <div className="rounded-2xl border border-rose-500/15 bg-rose-500/5 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-rose-200/80">Failed</div>
             <div className="mt-2 text-2xl font-semibold text-rose-300">{failedCount}</div>
@@ -163,8 +168,8 @@ export function DiagnosticsRunner() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Overall</div>
             <div className="mt-2 flex items-center gap-2">
-              <Badge variant={failedCount > 0 ? "danger" : successCount === tests.length ? "success" : isRunning ? "info" : "neutral"}>
-                {failedCount > 0 ? "Attention needed" : successCount === tests.length ? "Healthy" : isRunning ? "In progress" : "Not started"}
+              <Badge variant={failedCount > 0 ? "danger" : warningCount > 0 ? "warning" : successCount === tests.length ? "success" : isRunning ? "info" : "neutral"}>
+                {failedCount > 0 ? "Attention needed" : warningCount > 0 ? "Healthy with warnings" : successCount === tests.length ? "Healthy" : isRunning ? "In progress" : "Not started"}
               </Badge>
             </div>
             {runStartedAt ? <div className="mt-3 text-xs text-slate-500">Run started {new Date(runStartedAt).toLocaleString()}</div> : null}
