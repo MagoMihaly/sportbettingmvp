@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getWebPushEnv } from "@/lib/supabase/env";
+import { resolvePushPublicKeyState } from "@/lib/push/public-key";
 
 export async function GET() {
-  const { publicKey } = getWebPushEnv();
-  if (!publicKey) {
-    return NextResponse.json({ error: "Missing WEB_PUSH_VAPID_PUBLIC_KEY" }, { status: 503 });
+  const state = resolvePushPublicKeyState();
+  if (!state.ok) {
+    return NextResponse.json({ error: state.error }, { status: state.status });
   }
 
-  return NextResponse.json({ publicKey });
+  return NextResponse.json({ publicKey: state.publicKey });
 }

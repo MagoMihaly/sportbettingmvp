@@ -6,6 +6,7 @@ import { buildTriggeredSignalNotification, getEnabledNotificationChannels, valid
 import { getTriggeredSignals } from "@/lib/services/signalEngine";
 import { evaluateMlbPregameSignals } from "@/lib/services/mlbPregameEngine";
 import { getTriggeredSoccerSignals } from "@/lib/services/soccerSignalEngine";
+import { resolvePushPublicKeyState } from "@/lib/push/public-key";
 import { createMlbProvider } from "@/lib/providers/mlbApi";
 import { createHockeyProvider } from "@/lib/providers/hockeyApi";
 import { createSoccerProvider } from "@/lib/providers/soccerApi";
@@ -219,41 +220,19 @@ async function runDatabaseConnectionCheck() {
 }
 
 async function runApiRoutesCheck(request: Request) {
-  const pushKeyResponse = await fetch(new URL("/api/push/public-key", request.url), {
-    cache: "no-store",
-  });
+  const pushKeyState = resolvePushPublicKeyState();
   const hockeyProtectedResponse = await fetch(new URL("/api/internal/check-hockey-triggers", request.url), {
     method: "GET",
     cache: "no-store",
     headers: { authorization: "Bearer diagnostics-invalid-token" },
   });
 
-  if (pushKeyResponse.status === 503) {
-    let details = "Push public key route reported missing server configuration.";
-
-    try {
-      const payload = (await pushKeyResponse.json()) as { error?: string };
-      if (payload.error) {
-        details = `Push public key route is reachable, but not ready: ${payload.error}.`;
-      }
-    } catch {
-      details = "Push public key route is reachable, but reported missing server configuration.";
-    }
-
-    return buildFailure("api-routes", "Config Missing", details, "config");
+  if (!pushKeyState.ok) {
+    return buildFailure("api-routes", "Config Missing", `Push public key route is reachable, but not ready: ${pushKeyState.error}.`, "config");
   }
 
-  if (!pushKeyResponse.ok) {
-    return buildFailure("api-routes", "Invalid Response", `Push public key route returned ${pushKeyResponse.status}.`);
-  }
-
-  try {
-    const payload = (await pushKeyResponse.json()) as { publicKey?: string };
-    if (!payload.publicKey) {
-      return buildFailure("api-routes", "Invalid Response", "Push public key route returned 200 without a publicKey payload.");
-    }
-  } catch {
-    return buildFailure("api-routes", "Invalid Response", "Push public key route returned a non-JSON response.");
+  if (!pushKeyState.publicKey) {
+    return buildFailure("api-routes", "Invalid Response", "Push public key route resolved without a public key payload.");
   }
 
   if (hockeyProtectedResponse.status !== 401) {
