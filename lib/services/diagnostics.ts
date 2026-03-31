@@ -228,8 +228,32 @@ async function runApiRoutesCheck(request: Request) {
     headers: { authorization: "Bearer diagnostics-invalid-token" },
   });
 
+  if (pushKeyResponse.status === 503) {
+    let details = "Push public key route reported missing server configuration.";
+
+    try {
+      const payload = (await pushKeyResponse.json()) as { error?: string };
+      if (payload.error) {
+        details = `Push public key route is reachable, but not ready: ${payload.error}.`;
+      }
+    } catch {
+      details = "Push public key route is reachable, but reported missing server configuration.";
+    }
+
+    return buildFailure("api-routes", "Config Missing", details, "config");
+  }
+
   if (!pushKeyResponse.ok) {
     return buildFailure("api-routes", "Invalid Response", `Push public key route returned ${pushKeyResponse.status}.`);
+  }
+
+  try {
+    const payload = (await pushKeyResponse.json()) as { publicKey?: string };
+    if (!payload.publicKey) {
+      return buildFailure("api-routes", "Invalid Response", "Push public key route returned 200 without a publicKey payload.");
+    }
+  } catch {
+    return buildFailure("api-routes", "Invalid Response", "Push public key route returned a non-JSON response.");
   }
 
   if (hockeyProtectedResponse.status !== 401) {
