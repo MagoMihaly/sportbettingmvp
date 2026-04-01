@@ -21,7 +21,7 @@ export function SoccerSignalsTable({
       <CardContent className="space-y-4">
         {liveSignals.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-10 text-center text-sm text-slate-400">
-            No soccer signals yet. Save soccer settings and connect API-Football to start ingest.
+            No soccer signals yet. Save soccer settings and connect the active soccer provider to start ingest.
           </div>
         ) : (
           <div className="grid gap-4">

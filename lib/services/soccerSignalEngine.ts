@@ -47,7 +47,11 @@ export function getSoccerDataQualityFlags(game: ExternalSoccerGame, oddsAvailabl
   }
 
   if (!oddsAvailable) {
-    flags.push({ code: "ODDS_NOT_AVAILABLE_FOR_PLAN", severity: "warning", message: "API-Football league coverage reports odds unavailable for the accessible season on the current plan." });
+    flags.push({
+      code: "ODDS_NOT_AVAILABLE_FOR_PROVIDER",
+      severity: "warning",
+      message: "The active soccer provider is not supplying supported odds data for this game in the current setup.",
+    });
   }
 
   return flags;

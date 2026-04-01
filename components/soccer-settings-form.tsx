@@ -11,7 +11,7 @@ export function SoccerSettingsForm({ settings }: { settings: SoccerUserSettings 
   return (
     <Card>
       <CardHeader>
-        <CardDescription>API-Football Pro configuration surface</CardDescription>
+        <CardDescription>Soccer provider configuration surface</CardDescription>
         <CardTitle>Soccer watchlist and alerts</CardTitle>
       </CardHeader>
       <CardContent>
@@ -59,7 +59,7 @@ export function SoccerSettingsForm({ settings }: { settings: SoccerUserSettings 
           </div>
 
           <p className="text-sm leading-6 text-slate-400">
-            Soccer keeps its own rules and settings, but uses the same platform shell as hockey and MLB. When API-Football credentials are added, the scheduler-ready ingest layer can start filling watchlists, state snapshots, odds snapshots and live alerts without changing the other sports.
+            Soccer keeps its own rules and settings, but uses the same platform shell as hockey and MLB. When the configured soccer provider is connected, the scheduler-ready ingest layer can start filling watchlists, state snapshots and live alerts without changing the other sports.
           </p>
           <Button>Save soccer settings</Button>
         </form>

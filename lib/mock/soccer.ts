@@ -164,7 +164,7 @@ export const mockSoccerDataQualityFlags: SoccerDataQualityFlagRecord[] = [
     game_id: "soccer-game-1",
     flag_code: "MISSING_LIVE_ODDS",
     severity: "warning",
-    message: "Live odds parser is in placeholder mode until API-Football credentials are connected.",
+    message: "The active soccer provider is not supplying a live odds layer for this demo setup.",
     payload: { demo: true },
   },
 ];

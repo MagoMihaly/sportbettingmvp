@@ -15,6 +15,7 @@ import {
   getApiBaseballEnv,
   getApiFootballEnv,
   getCronSecret,
+  getSportradarSoccerEnv,
   getSupabaseEnv,
   getWebPushEnv,
   hasSupabaseEnv,
@@ -299,13 +300,19 @@ async function runExternalProvidersCheck() {
   if (isSoccerModuleEnabled()) {
     try {
       const apiFootballEnv = getApiFootballEnv();
+      const sportradarEnv = getSportradarSoccerEnv();
       const soccerProvider = createSoccerProvider();
       if (soccerProvider.providerKey === "mock-soccer") {
         providerMessages.push("Soccer is using the mock provider.");
-      } else if (!apiFootballEnv.apiKey) {
+      } else if (soccerProvider.providerKey === "api-football" && !apiFootballEnv.apiKey) {
         failures.push({
           summary: "Config Missing",
           details: "Soccer provider is set to API-Football, but API_FOOTBALL_API_KEY is not available on the server.",
+        });
+      } else if (soccerProvider.providerKey === "sportradar-soccer" && !sportradarEnv.apiKey) {
+        failures.push({
+          summary: "Config Missing",
+          details: "Soccer provider is set to Sportradar, but SPORTRADAR_SOCCER_API_KEY is not available on the server.",
         });
       } else {
         const soccerGames = await withTimeout(
@@ -313,9 +320,16 @@ async function runExternalProvidersCheck() {
           12000,
           "Soccer provider timed out during diagnostics.",
         );
-        providerMessages.push(
-          `Soccer provider ${soccerProvider.displayName} answered with ${soccerGames.length} scheduled sample rows. Server env present=yes, header=x-apisports-key, base URL=${apiFootballEnv.baseUrl}.`,
-        );
+
+        if (soccerProvider.providerKey === "sportradar-soccer") {
+          providerMessages.push(
+            `Soccer provider ${soccerProvider.displayName} answered with ${soccerGames.length} scheduled sample rows. Server env present=yes, header=x-api-key, base URL=${sportradarEnv.baseUrl}, access level=${sportradarEnv.accessLevel}, extended access=${sportradarEnv.extendedAccessLevel}.`,
+          );
+        } else {
+          providerMessages.push(
+            `Soccer provider ${soccerProvider.displayName} answered with ${soccerGames.length} scheduled sample rows. Server env present=yes, header=x-apisports-key, base URL=${apiFootballEnv.baseUrl}.`,
+          );
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -356,7 +370,7 @@ async function runExternalProvidersCheck() {
       return buildWarning(
         "external-providers",
         "Daily API request limit reached",
-        `${combinedDetails} The provider credentials are present and the integration path is working, but the current API-Football daily request quota has been exhausted. Wait for the quota reset or upgrade the plan, then re-run diagnostics.`,
+        `${combinedDetails} The provider credentials are present and the integration path is working, but the active sports data account has exhausted its current request quota. Wait for the quota reset or upgrade the plan, then re-run diagnostics.`,
       );
     }
 
@@ -420,8 +434,10 @@ async function runNotificationSubsystemCheck() {
 async function runEnvConfigCheck() {
   const supabaseEnv = getSupabaseEnv();
   const apiFootballEnv = getApiFootballEnv();
+  const sportradarEnv = getSportradarSoccerEnv();
   const apiBaseballEnv = getApiBaseballEnv();
   const webPushEnv = getWebPushEnv();
+  const soccerProvider = createSoccerProvider();
 
   const missingCore = [
     !process.env.NEXT_PUBLIC_APP_URL ? "NEXT_PUBLIC_APP_URL" : null,
@@ -435,7 +451,12 @@ async function runEnvConfigCheck() {
   }
 
   const warnings = [
-    isSoccerModuleEnabled() && !apiFootballEnv.apiKey ? "API_FOOTBALL_API_KEY missing for real soccer provider checks" : null,
+    isSoccerModuleEnabled() && soccerProvider.providerKey === "api-football" && !apiFootballEnv.apiKey
+      ? "API_FOOTBALL_API_KEY missing for the configured soccer provider"
+      : null,
+    isSoccerModuleEnabled() && soccerProvider.providerKey === "sportradar-soccer" && !sportradarEnv.apiKey
+      ? "SPORTRADAR_SOCCER_API_KEY missing for the configured soccer provider"
+      : null,
     (process.env.LIVE_MLB_PROVIDER ?? "mock").toLowerCase() === "api-baseball" && !apiBaseballEnv.apiKey
       ? "API_BASEBALL_API_KEY missing for real MLB provider checks"
       : null,

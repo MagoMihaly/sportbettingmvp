@@ -5,7 +5,7 @@ Production-style MVP foundation for a multi-sport signal platform. Hockey, socce
 ## Current modules
 
 - Hockey workspace with provider abstraction, signal tracking and scheduler-safe ingest
-- Soccer workspace prepared for API-Football with H2 and H3 systems
+- Soccer workspace prepared for provider-swappable H2 and H3 systems, currently ready for Sportradar Soccer Base + Extended Base
 - MLB workspace focused on pre-game series strategies
 - Shared auth, push subscription storage, protected scheduler endpoints and member shell
 
@@ -42,7 +42,7 @@ SUPABASE_SECRET_KEY=your-secret-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CRON_SECRET=your-cron-secret
 LIVE_HOCKEY_PROVIDER=hybrid
-LIVE_SOCCER_PROVIDER=api-football
+LIVE_SOCCER_PROVIDER=sportradar
 LIVE_MLB_PROVIDER=mock
 SOCCER_MODULE_ENABLED=true
 MLB_MODULE_ENABLED=true
@@ -53,6 +53,11 @@ THESPORTSDB_API_VERSION=v1
 BALLDONTLIE_NHL_API_KEY=your-balldontlie-nhl-api-key
 API_FOOTBALL_API_KEY=your-api-football-key
 API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
+SPORTRADAR_SOCCER_API_KEY=your-sportradar-soccer-key
+SPORTRADAR_SOCCER_BASE_URL=https://api.sportradar.com
+SPORTRADAR_SOCCER_ACCESS_LEVEL=trial
+SPORTRADAR_SOCCER_EXTENDED_ACCESS_LEVEL=trial
+SPORTRADAR_SOCCER_LANGUAGE=en
 API_BASEBALL_API_KEY=your-api-baseball-key
 WEB_PUSH_VAPID_PUBLIC_KEY=your-web-push-public-key
 WEB_PUSH_VAPID_PRIVATE_KEY=your-web-push-private-key
@@ -81,9 +86,15 @@ The project now uses a staged approach:
 
 This keeps the MVP reliable while reducing unnecessary API pressure.
 
+## Soccer provider notes
+
+- `LIVE_SOCCER_PROVIDER=sportradar` uses Sportradar Soccer Base for daily schedules and Soccer Extended Base for live summaries and match summaries.
+- This keeps the H2/H3 signal engine alive even when odds are unavailable from the active soccer provider.
+- `getMarketData()` returns no odds on the Sportradar path right now, so the app stores signal/watchlist state without a live odds layer.
+
 ## API-Football free-plan safe mode
 
-Use this mode when the account authenticates but cannot access the current season, live parameters or odds coverage.
+Use this only if you intentionally switch back to `LIVE_SOCCER_PROVIDER=api-football` and the account authenticates but cannot access the current season, live parameters or odds coverage.
 
 Env switches:
 - `SOCCER_FREE_PLAN_SAFE_MODE=true`

@@ -32,9 +32,9 @@ const sportActionMap = {
     sync: runManualSoccerLiveSyncAction,
     odds: runManualSoccerOddsSyncAction,
     title: "Soccer engine ops",
-    description: "Run soccer watchlist sync and H2/H3 odds capture.",
+    description: "Run soccer watchlist sync and optional provider-specific odds capture.",
     syncCopy: "Run the soccer provider sync and persist games, watchlist rows and live signals.",
-    oddsCopy: "Capture soccer odds only for games that stay in watchlist or trigger-zone state.",
+    oddsCopy: "Capture soccer odds only when the active provider exposes a supported odds layer for watchlist or trigger-zone games.",
     syncLabel: "Run live sync",
   },
   mlb: {

@@ -56,6 +56,19 @@ export function getApiFootballEnv() {
   };
 }
 
+export function getSportradarSoccerEnv() {
+  return {
+    apiKey: process.env.SPORTRADAR_SOCCER_API_KEY ?? "",
+    baseUrl: process.env.SPORTRADAR_SOCCER_BASE_URL ?? "https://api.sportradar.com",
+    accessLevel: process.env.SPORTRADAR_SOCCER_ACCESS_LEVEL ?? "trial",
+    extendedAccessLevel:
+      process.env.SPORTRADAR_SOCCER_EXTENDED_ACCESS_LEVEL ??
+      process.env.SPORTRADAR_SOCCER_ACCESS_LEVEL ??
+      "trial",
+    language: process.env.SPORTRADAR_SOCCER_LANGUAGE ?? "en",
+  };
+}
+
 export function getApiBaseballEnv() {
   return {
     apiKey: process.env.API_BASEBALL_API_KEY ?? "",

@@ -1,5 +1,7 @@
 import { ApiFootballSoccerProvider } from "@/lib/providers/apiFootballSoccer";
+import { SportradarSoccerProvider } from "@/lib/providers/sportradarSoccer";
 import { defaultSoccerLeagueSlugs } from "@/lib/config/soccerLeagues";
+import { getSportradarSoccerEnv } from "@/lib/supabase/env";
 import type { ExternalSoccerGame, ExternalSoccerMarketData, SoccerApiProvider } from "@/lib/types/soccer";
 
 class MockSoccerProvider implements SoccerApiProvider {
@@ -29,10 +31,19 @@ class MockSoccerProvider implements SoccerApiProvider {
 }
 
 export function createSoccerProvider(): SoccerApiProvider {
-  const configuredProvider = (process.env.LIVE_SOCCER_PROVIDER ?? "api-football").toLowerCase();
+  const configuredProvider = (process.env.LIVE_SOCCER_PROVIDER ?? "").toLowerCase();
+  const sportradarEnv = getSportradarSoccerEnv();
 
   if (configuredProvider === "mock") {
     return new MockSoccerProvider();
+  }
+
+  if (configuredProvider === "sportradar") {
+    return new SportradarSoccerProvider();
+  }
+
+  if (!configuredProvider && sportradarEnv.apiKey) {
+    return new SportradarSoccerProvider();
   }
 
   return new ApiFootballSoccerProvider();
