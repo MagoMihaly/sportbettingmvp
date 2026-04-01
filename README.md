@@ -6,7 +6,7 @@ Production-style MVP foundation for a multi-sport signal platform. Hockey, socce
 
 - Hockey workspace with provider abstraction, signal tracking and scheduler-safe ingest
 - Soccer workspace prepared for provider-swappable H2 and H3 systems, currently ready for Sportradar Soccer Base + Extended Base
-- MLB workspace focused on pre-game series strategies
+- MLB workspace focused on pre-game series strategies with provider-swappable schedule/context ingest
 - Shared auth, push subscription storage, protected scheduler endpoints and member shell
 
 ## Multi-sport model
@@ -43,7 +43,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CRON_SECRET=your-cron-secret
 LIVE_HOCKEY_PROVIDER=hybrid
 LIVE_SOCCER_PROVIDER=sportradar
-LIVE_MLB_PROVIDER=mock
+LIVE_MLB_PROVIDER=sportradar
 SOCCER_MODULE_ENABLED=true
 MLB_MODULE_ENABLED=true
 SOCCER_FREE_PLAN_SAFE_MODE=false
@@ -59,6 +59,10 @@ SPORTRADAR_SOCCER_ACCESS_LEVEL=trial
 SPORTRADAR_SOCCER_EXTENDED_ACCESS_LEVEL=trial
 SPORTRADAR_SOCCER_LANGUAGE=en
 API_BASEBALL_API_KEY=your-api-baseball-key
+SPORTRADAR_MLB_API_KEY=your-sportradar-mlb-key
+SPORTRADAR_MLB_BASE_URL=https://api.sportradar.com
+SPORTRADAR_MLB_ACCESS_LEVEL=trial
+SPORTRADAR_MLB_LANGUAGE=en
 WEB_PUSH_VAPID_PUBLIC_KEY=your-web-push-public-key
 WEB_PUSH_VAPID_PRIVATE_KEY=your-web-push-private-key
 WEB_PUSH_VAPID_SUBJECT=mailto:notifications@signalops.local
@@ -95,6 +99,12 @@ This keeps the MVP reliable while reducing unnecessary API pressure.
 ## API-Football free-plan safe mode
 
 Use this only if you intentionally switch back to `LIVE_SOCCER_PROVIDER=api-football` and the account authenticates but cannot access the current season, live parameters or odds coverage.
+
+## MLB provider notes
+
+- `LIVE_MLB_PROVIDER=sportradar` uses Sportradar MLB Base daily summary feeds for scheduled games and recent series context.
+- This keeps the pre-game series evaluator on low-request daily summary endpoints instead of expensive per-game polling.
+- Sportradar MLB Base does not include odds in the current setup, so MLB pre-game strategies can still ingest schedule, score and probable pitcher context, but they will only qualify when a valid odds layer is available from stored snapshots or a later add-on.
 
 Env switches:
 - `SOCCER_FREE_PLAN_SAFE_MODE=true`

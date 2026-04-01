@@ -1,5 +1,7 @@
 import { ApiBaseballMlbProvider } from "@/lib/providers/apiBaseballMlb";
+import { SportradarMlbProvider } from "@/lib/providers/sportradarMlb";
 import { mockMlbGames } from "@/lib/mock/mlb";
+import { getSportradarMlbEnv } from "@/lib/supabase/env";
 import type { ExternalMlbGame, MlbApiProvider } from "@/lib/types/mlb";
 
 class MockMlbProvider implements MlbApiProvider {
@@ -42,10 +44,19 @@ class MockMlbProvider implements MlbApiProvider {
 }
 
 export function createMlbProvider(): MlbApiProvider {
-  const configuredProvider = (process.env.LIVE_MLB_PROVIDER ?? "mock").toLowerCase();
+  const configuredProvider = (process.env.LIVE_MLB_PROVIDER ?? "").toLowerCase();
+  const sportradarEnv = getSportradarMlbEnv();
+
+  if (configuredProvider === "sportradar") {
+    return new SportradarMlbProvider();
+  }
 
   if (configuredProvider === "api-baseball") {
     return new ApiBaseballMlbProvider();
+  }
+
+  if (!configuredProvider && sportradarEnv.apiKey) {
+    return new SportradarMlbProvider();
   }
 
   return new MockMlbProvider();

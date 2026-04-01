@@ -15,6 +15,7 @@ import {
   getApiBaseballEnv,
   getApiFootballEnv,
   getCronSecret,
+  getSportradarMlbEnv,
   getSportradarSoccerEnv,
   getSupabaseEnv,
   getWebPushEnv,
@@ -344,13 +345,34 @@ async function runExternalProvidersCheck() {
 
   if (isMlbModuleEnabled()) {
     try {
+      const apiBaseballEnv = getApiBaseballEnv();
+      const sportradarMlbEnv = getSportradarMlbEnv();
       const mlbProvider = createMlbProvider();
-      const mlbGames = await withTimeout(
-        mlbProvider.getScheduledGames(),
-        10000,
-        "MLB provider timed out during diagnostics.",
-      );
-      providerMessages.push(`MLB provider ${mlbProvider.displayName} answered with ${mlbGames.length} scheduled sample rows.`);
+      if (mlbProvider.providerKey === "api-baseball" && !apiBaseballEnv.apiKey) {
+        failures.push({
+          summary: "Config Missing",
+          details: "MLB provider is set to API-Baseball, but API_BASEBALL_API_KEY is not available on the server.",
+        });
+      } else if (mlbProvider.providerKey === "sportradar-mlb" && !sportradarMlbEnv.apiKey) {
+        failures.push({
+          summary: "Config Missing",
+          details: "MLB provider is set to Sportradar, but SPORTRADAR_MLB_API_KEY is not available on the server.",
+        });
+      } else {
+        const mlbGames = await withTimeout(
+          mlbProvider.getScheduledGames(),
+          10000,
+          "MLB provider timed out during diagnostics.",
+        );
+
+        if (mlbProvider.providerKey === "sportradar-mlb") {
+          providerMessages.push(
+            `MLB provider ${mlbProvider.displayName} answered with ${mlbGames.length} scheduled sample rows. Server env present=yes, header=x-api-key, base URL=${sportradarMlbEnv.baseUrl}, access level=${sportradarMlbEnv.accessLevel}.`,
+          );
+        } else {
+          providerMessages.push(`MLB provider ${mlbProvider.displayName} answered with ${mlbGames.length} scheduled sample rows.`);
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       failures.push({
@@ -436,8 +458,10 @@ async function runEnvConfigCheck() {
   const apiFootballEnv = getApiFootballEnv();
   const sportradarEnv = getSportradarSoccerEnv();
   const apiBaseballEnv = getApiBaseballEnv();
+  const sportradarMlbEnv = getSportradarMlbEnv();
   const webPushEnv = getWebPushEnv();
   const soccerProvider = createSoccerProvider();
+  const mlbProvider = createMlbProvider();
 
   const missingCore = [
     !process.env.NEXT_PUBLIC_APP_URL ? "NEXT_PUBLIC_APP_URL" : null,
@@ -457,8 +481,9 @@ async function runEnvConfigCheck() {
     isSoccerModuleEnabled() && soccerProvider.providerKey === "sportradar-soccer" && !sportradarEnv.apiKey
       ? "SPORTRADAR_SOCCER_API_KEY missing for the configured soccer provider"
       : null,
-    (process.env.LIVE_MLB_PROVIDER ?? "mock").toLowerCase() === "api-baseball" && !apiBaseballEnv.apiKey
-      ? "API_BASEBALL_API_KEY missing for real MLB provider checks"
+    mlbProvider.providerKey === "api-baseball" && !apiBaseballEnv.apiKey ? "API_BASEBALL_API_KEY missing for the configured MLB provider" : null,
+    mlbProvider.providerKey === "sportradar-mlb" && !sportradarMlbEnv.apiKey
+      ? "SPORTRADAR_MLB_API_KEY missing for the configured MLB provider"
       : null,
     !webPushEnv.publicKey || !webPushEnv.privateKey ? "Web push VAPID keys are not fully configured" : null,
   ].filter((value): value is string => Boolean(value));

@@ -75,3 +75,12 @@ export function getApiBaseballEnv() {
     baseUrl: process.env.API_BASEBALL_BASE_URL ?? "https://v1.baseball.api-sports.io",
   };
 }
+
+export function getSportradarMlbEnv() {
+  return {
+    apiKey: process.env.SPORTRADAR_MLB_API_KEY ?? "",
+    baseUrl: process.env.SPORTRADAR_MLB_BASE_URL ?? "https://api.sportradar.com",
+    accessLevel: process.env.SPORTRADAR_MLB_ACCESS_LEVEL ?? "trial",
+    language: process.env.SPORTRADAR_MLB_LANGUAGE ?? "en",
+  };
+}
