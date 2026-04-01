@@ -15,6 +15,7 @@ import {
   getApiBaseballEnv,
   getApiFootballEnv,
   getCronSecret,
+  getSportradarHockeyEnv,
   getSportradarMlbEnv,
   getSportradarSoccerEnv,
   getSupabaseEnv,
@@ -279,16 +280,29 @@ async function runExternalProvidersCheck() {
   const failures: Array<{ summary: ReturnType<typeof classifyProviderError>; details: string }> = [];
 
   try {
+    const sportradarHockeyEnv = getSportradarHockeyEnv();
     const hockeyProvider = createHockeyProvider();
     if (hockeyProvider.providerKey === "mock") {
       providerMessages.push("Hockey is using the mock provider.");
+    } else if (hockeyProvider.providerKey === "sportradar-hockey" && !sportradarHockeyEnv.apiKey) {
+      failures.push({
+        summary: "Config Missing",
+        details: "Hockey provider is set to Sportradar, but SPORTRADAR_HOCKEY_API_KEY is not available on the server.",
+      });
     } else {
       const hockeyGames = await withTimeout(
         hockeyProvider.getScheduledGames([priorityLeagues[0]]),
         10000,
         "Hockey provider timed out during diagnostics.",
       );
-      providerMessages.push(`Hockey provider ${hockeyProvider.displayName} answered with ${hockeyGames.length} scheduled sample rows.`);
+
+      if (hockeyProvider.providerKey === "sportradar-hockey") {
+        providerMessages.push(
+          `Hockey provider ${hockeyProvider.displayName} answered with ${hockeyGames.length} scheduled sample rows. Server env present=yes, header=x-api-key, base URL=${sportradarHockeyEnv.baseUrl}, access level=${sportradarHockeyEnv.accessLevel}.`,
+        );
+      } else {
+        providerMessages.push(`Hockey provider ${hockeyProvider.displayName} answered with ${hockeyGames.length} scheduled sample rows.`);
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -455,11 +469,13 @@ async function runNotificationSubsystemCheck() {
 
 async function runEnvConfigCheck() {
   const supabaseEnv = getSupabaseEnv();
+  const sportradarHockeyEnv = getSportradarHockeyEnv();
   const apiFootballEnv = getApiFootballEnv();
   const sportradarEnv = getSportradarSoccerEnv();
   const apiBaseballEnv = getApiBaseballEnv();
   const sportradarMlbEnv = getSportradarMlbEnv();
   const webPushEnv = getWebPushEnv();
+  const hockeyProvider = createHockeyProvider();
   const soccerProvider = createSoccerProvider();
   const mlbProvider = createMlbProvider();
 
@@ -475,6 +491,9 @@ async function runEnvConfigCheck() {
   }
 
   const warnings = [
+    hockeyProvider.providerKey === "sportradar-hockey" && !sportradarHockeyEnv.apiKey
+      ? "SPORTRADAR_HOCKEY_API_KEY missing for the configured hockey provider"
+      : null,
     isSoccerModuleEnabled() && soccerProvider.providerKey === "api-football" && !apiFootballEnv.apiKey
       ? "API_FOOTBALL_API_KEY missing for the configured soccer provider"
       : null,

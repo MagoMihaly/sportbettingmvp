@@ -4,7 +4,7 @@ Production-style MVP foundation for a multi-sport signal platform. Hockey, socce
 
 ## Current modules
 
-- Hockey workspace with provider abstraction, signal tracking and scheduler-safe ingest
+- Hockey workspace with provider-swappable European competition ingest, signal tracking and scheduler-safe ops
 - Soccer workspace prepared for provider-swappable H2 and H3 systems, currently ready for Sportradar Soccer Base + Extended Base
 - MLB workspace focused on pre-game series strategies with provider-swappable schedule/context ingest
 - Shared auth, push subscription storage, protected scheduler endpoints and member shell
@@ -41,7 +41,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SECRET_KEY=your-secret-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CRON_SECRET=your-cron-secret
-LIVE_HOCKEY_PROVIDER=hybrid
+LIVE_HOCKEY_PROVIDER=sportradar
 LIVE_SOCCER_PROVIDER=sportradar
 LIVE_MLB_PROVIDER=sportradar
 SOCCER_MODULE_ENABLED=true
@@ -51,6 +51,10 @@ SOCCER_RESEARCH_REFERENCE_DATE=2025-03-15
 THESPORTSDB_API_KEY=123
 THESPORTSDB_API_VERSION=v1
 BALLDONTLIE_NHL_API_KEY=your-balldontlie-nhl-api-key
+SPORTRADAR_HOCKEY_API_KEY=your-sportradar-hockey-key
+SPORTRADAR_HOCKEY_BASE_URL=https://api.sportradar.com
+SPORTRADAR_HOCKEY_ACCESS_LEVEL=trial
+SPORTRADAR_HOCKEY_LANGUAGE=en
 API_FOOTBALL_API_KEY=your-api-football-key
 API_FOOTBALL_BASE_URL=https://v3.football.api-sports.io
 SPORTRADAR_SOCCER_API_KEY=your-sportradar-soccer-key
@@ -89,6 +93,12 @@ The project now uses a staged approach:
 4. Closed or stale games fall out of the higher-cost sync paths quickly
 
 This keeps the MVP reliable while reducing unnecessary API pressure.
+
+## Hockey provider notes
+
+- `LIVE_HOCKEY_PROVIDER=sportradar` uses Sportradar Global Ice Hockey Base live and daily summaries for a Europe-first hockey feed.
+- The active hockey selection now focuses on the supported European competition set and no longer depends on the old NHL-specific provider path.
+- The current Sportradar hockey path does not map sportsbook odds into `odds_snapshots`, so the hockey trigger engine runs from match-state data and only captures a market layer when a real odds source is added later.
 
 ## Soccer provider notes
 

@@ -1,6 +1,8 @@
 import { BalldontlieNhlProvider } from "@/lib/providers/balldontlieNhl";
 import { MockHockeyApiProvider } from "@/lib/providers/mockHockeyApi";
+import { SportradarHockeyProvider } from "@/lib/providers/sportradarHockey";
 import { TheSportsDbHockeyProvider } from "@/lib/providers/theSportsDb";
+import { getSportradarHockeyEnv } from "@/lib/supabase/env";
 import type { ExternalHockeyGame, ExternalMarketData, HockeyApiProvider } from "@/lib/types/provider";
 
 class HybridHockeyProvider implements HockeyApiProvider {
@@ -82,10 +84,15 @@ class HybridHockeyProvider implements HockeyApiProvider {
 }
 
 export function createHockeyProvider(): HockeyApiProvider {
-  const configuredProvider = (process.env.LIVE_HOCKEY_PROVIDER ?? "hybrid").toLowerCase();
+  const configuredProvider = (process.env.LIVE_HOCKEY_PROVIDER ?? "").toLowerCase();
+  const sportradarEnv = getSportradarHockeyEnv();
 
   if (configuredProvider === "mock") {
     return new MockHockeyApiProvider();
+  }
+
+  if (configuredProvider === "sportradar") {
+    return new SportradarHockeyProvider();
   }
 
   if (configuredProvider === "thesportsdb") {
@@ -94,6 +101,12 @@ export function createHockeyProvider(): HockeyApiProvider {
 
   if (configuredProvider === "balldontlie-nhl") {
     return new BalldontlieNhlProvider();
+  }
+
+  if (!configuredProvider || configuredProvider === "hybrid") {
+    if (sportradarEnv.apiKey) {
+      return new SportradarHockeyProvider();
+    }
   }
 
   return new HybridHockeyProvider([new TheSportsDbHockeyProvider(), new BalldontlieNhlProvider()]);

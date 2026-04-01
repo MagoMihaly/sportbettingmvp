@@ -7,7 +7,12 @@ export const priorityLeagues = [
   "DEL",
   "French Ligue Magnus",
   "Danish Metal Ligaen",
-  "NHL",
 ] as const;
 
 export type PriorityLeague = (typeof priorityLeagues)[number];
+
+const priorityLeagueSet = new Set<string>(priorityLeagues);
+
+export function sanitizeHockeyLeagues(leagues: string[] | null | undefined) {
+  return (leagues ?? []).filter((league) => priorityLeagueSet.has(league));
+}

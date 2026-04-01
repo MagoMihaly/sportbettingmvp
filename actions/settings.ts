@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { sanitizeHockeyLeagues } from "@/lib/config/leagues";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 function formDataToLeagues(formData: FormData) {
-  return formData
+  return sanitizeHockeyLeagues(
+    formData
     .getAll("selected_leagues")
     .map((value) => String(value))
-    .filter(Boolean);
+    .filter(Boolean),
+  );
 }
 
 export async function updateLeagueSettingsAction(formData: FormData): Promise<void> {

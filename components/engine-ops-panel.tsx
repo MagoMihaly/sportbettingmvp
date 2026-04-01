@@ -23,9 +23,9 @@ const sportActionMap = {
     sync: runManualLiveSyncAction,
     odds: runManualOddsSyncAction,
     title: "Hockey engine ops",
-    description: "Run hockey fixture sync and cost-aware odds capture.",
-    syncCopy: "Run the hockey provider sync and persist fixtures into tracked matches.",
-    oddsCopy: "Capture a hockey odds layer only for matches that remain in the active watch window.",
+    description: "Run the Europe-first hockey sync and the optional provider market layer.",
+    syncCopy: "Run the hockey provider sync and persist supported European competition fixtures into tracked matches.",
+    oddsCopy: "Capture a hockey market layer only when the active provider exposes usable sportsbook-style data for the current watch window.",
     syncLabel: "Run live sync",
   },
   soccer: {

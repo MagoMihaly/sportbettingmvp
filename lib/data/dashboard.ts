@@ -8,6 +8,7 @@ import {
   mockSignals,
   mockTrackedMatches,
 } from "@/lib/mock/signals";
+import { sanitizeHockeyLeagues } from "@/lib/config/leagues";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getActiveProviderSummary } from "@/lib/services/liveIngest";
@@ -36,9 +37,11 @@ function buildStats(
   oddsSnapshots: OddsSnapshotRecord[],
   pushSubscriptions: PushSubscriptionRecord[],
 ) {
+  const selectedLeagues = sanitizeHockeyLeagues(settings?.selected_leagues);
+
   return {
     totalSignals: signals.length,
-    activeLeagues: settings?.selected_leagues.length ?? 0,
+    activeLeagues: selectedLeagues.length,
     triggeredSignals: signals.filter((signal) => signal.trigger_condition_met).length,
     wonSignals: signals.filter((signal) => signal.result === "won").length,
     lostSignals: signals.filter((signal) => signal.result === "lost").length,
@@ -145,7 +148,12 @@ export async function getDashboardData(): Promise<DashboardPayload> {
     const profile = profileResult.data ?? null;
     const signals = signalsResult.data;
     const alerts = alertsResult.data;
-    const settings = settingsResult.data ?? null;
+    const settings = settingsResult.data
+      ? {
+          ...settingsResult.data,
+          selected_leagues: sanitizeHockeyLeagues(settingsResult.data.selected_leagues),
+        }
+      : null;
     const pushSubscriptions = pushSubscriptionsResult.data;
     const trackedMatches = trackedMatchesResult.data;
     const oddsSnapshots = oddsSnapshotsResult.data;

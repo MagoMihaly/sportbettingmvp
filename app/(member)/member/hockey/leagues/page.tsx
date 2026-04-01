@@ -13,7 +13,7 @@ export default async function HockeyLeaguesPage() {
       <HockeySectionNav pathname="/member/hockey/leagues" />
       <div className="space-y-2">
         <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">Hockey settings</div>
-        <h1 className="text-3xl font-semibold text-white">Priority hockey league watchlist</h1>
+        <h1 className="text-3xl font-semibold text-white">Priority European hockey league watchlist</h1>
       </div>
       <Card>
         <CardHeader>

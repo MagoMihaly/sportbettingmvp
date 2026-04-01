@@ -33,6 +33,15 @@ export function getProviderApiKey() {
   return process.env.PROVIDER_API_KEY ?? "";
 }
 
+export function getSportradarHockeyEnv() {
+  return {
+    apiKey: process.env.SPORTRADAR_HOCKEY_API_KEY ?? "",
+    baseUrl: process.env.SPORTRADAR_HOCKEY_BASE_URL ?? "https://api.sportradar.com",
+    accessLevel: process.env.SPORTRADAR_HOCKEY_ACCESS_LEVEL ?? "trial",
+    language: process.env.SPORTRADAR_HOCKEY_LANGUAGE ?? "en",
+  };
+}
+
 export function isSoccerModuleEnabled() {
   return (process.env.SOCCER_MODULE_ENABLED ?? "true").toLowerCase() === "true";
 }

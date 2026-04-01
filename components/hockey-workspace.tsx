@@ -16,9 +16,9 @@ export function HockeyWorkspace({ payload }: { payload: DashboardPayload }) {
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">Hockey workspace</div>
-        <h1 className="text-3xl font-semibold text-white">Hockey signal monitoring</h1>
+        <h1 className="text-3xl font-semibold text-white">European hockey signal monitoring</h1>
         <p className="max-w-3xl text-sm leading-7 text-slate-400">
-          Review live hockey alerts, tracked signals, watched league coverage, push readiness and ingest activity from a single protected workspace.
+          Review live European hockey alerts, tracked signals, watched league coverage, push readiness and ingest activity from a single protected workspace.
         </p>
       </div>
       <DashboardStatsGrid stats={stats} />
@@ -69,7 +69,7 @@ export function HockeyWorkspace({ payload }: { payload: DashboardPayload }) {
               Manual signal input is disabled. Signals come from the watchlist, provider ingest layer and rule-based evaluator.
             </p>
             <p>
-              Save your hockey leagues first and run the engine sync from the engine workspace when you want fresh rows.
+              Save your supported European hockey leagues first and run the engine sync from the engine workspace when you want fresh rows.
             </p>
             <Button asChild>
               <Link href="/member/engine">Open engine workspace</Link>
